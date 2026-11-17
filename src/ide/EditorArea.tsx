@@ -5,6 +5,7 @@ import { baseName, pathKey, relativeTo } from "../lib/format";
 import { type Anim, useDetail, seek, useSession } from "../lib/store";
 import type { Detail, Head, Hunk, Step } from "../lib/types";
 import { CodeEditor, type Typing } from "./CodeEditor";
+import { useSettings } from "../lib/settings";
 import { Markdown } from "./Markdown";
 import { FileIcon } from "./FileIcon";
 import { Close } from "../ui/Icons";
@@ -134,6 +135,7 @@ function firstLines(s: string, n: number) {
 
 function FileContent({ step, path, detail, typing }: { step: Step; path: string; detail: Detail | null | undefined; typing: Typing | null }) {
   const name = baseName(path);
+  const { wordWrap } = useSettings();
   const view = useMemo(() => fileView(step, detail, path), [step, detail, path]);
   if (detail === undefined) return <div className="editor-loading" />;
   if (detail?.image) {
@@ -153,7 +155,7 @@ function FileContent({ step, path, detail, typing }: { step: Step; path: string;
     return <div className="editor-loading dim">{step.state === "run" ? "Waiting for the result…" : "Nothing to show for this step."}</div>;
   }
   // Reads don't animate: the file just opens.
-  return <CodeEditor doc={view.doc} original={view.original} name={name} startLine={view.start} typing={step.cat === "read" ? null : typing} />;
+  return <CodeEditor doc={view.doc} original={view.original} name={name} startLine={view.start} typing={step.cat === "read" ? null : typing} wrap={wordWrap} />;
 }
 
 /** What the editor shows for a file step: the file, or a change to it. */

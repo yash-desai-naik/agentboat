@@ -6,6 +6,10 @@ All notable changes to Ccboat are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Alt+Z** wraps long lines in the editor, as in VS Code (remembered).
+
 ## [0.2.0] - 2026-11-17
 
 ### Added

@@ -75,6 +75,7 @@ A macOS build will follow (it compiles, but hasn't been run on a Mac yet).
   | Home | first step |
   | Ctrl+O | open another session |
   | Ctrl+T | show / hide the timeline |
+  | Alt+Z | wrap long lines in the editor |
   | Ctrl+B / J / L | side bar / terminal / Claude panel |
 
   Replay speed (0.1× to 16×), *Real pauses* (the session's own timing, long gaps shortened) or

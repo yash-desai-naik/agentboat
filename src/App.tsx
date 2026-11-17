@@ -66,6 +66,8 @@ export function App() {
       }
       if (ctrl && e.key.toLowerCase() === "b") return void (e.preventDefault(), settings.set({ showSidebar: !settings.get().showSidebar }));
       if (ctrl && e.key.toLowerCase() === "j") return void (e.preventDefault(), settings.set({ showPanel: !settings.get().showPanel }));
+      // Alt+Z: wrap long lines in the editor, as in VS Code (by key position, so any layout works).
+      if (e.altKey && !ctrl && !e.shiftKey && e.code === "KeyZ") return void (e.preventDefault(), settings.set({ wordWrap: !settings.get().wordWrap }));
       if (ctrl && e.key.toLowerCase() === "t") return void (e.preventDefault(), settings.set({ showTimeline: !settings.get().showTimeline }));
       if (ctrl && e.key.toLowerCase() === "l") return void (e.preventDefault(), settings.set({ showChat: !settings.get().showChat }));
       if (getSession().phase !== "ready") return;

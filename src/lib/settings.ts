@@ -18,6 +18,8 @@ export interface Settings {
   showSidebar: boolean;
   /** The timeline (scrubber and replay controls) under the editor; shown on demand. */
   showTimeline: boolean;
+  /** Wrap long lines in the editor (Alt+Z, as in VS Code). */
+  wordWrap: boolean;
   /** Look for a newer release on GitHub at start-up and once a day. */
   checkUpdates: boolean;
   /** A version you chose to skip: not announced again (a manual check still shows it). */
@@ -36,6 +38,7 @@ const DEFAULTS: Settings = {
   showPanel: true,
   showSidebar: true,
   showTimeline: false,
+  wordWrap: false,
   checkUpdates: true,
   skippedUpdate: "",
 };
