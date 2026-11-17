@@ -251,7 +251,9 @@ function BrowserView({ step, detail }: { step: Step; detail: Detail | null | und
           <p className="dim">{search ? "Searching…" : "Loading the page…"}</p>
         ) : detail?.error ? (
           <div className="browser-error">
+            <div className="browser-error-code">{detail.httpStatus ? `HTTP ${detail.httpStatus}` : "Couldn't load"}</div>
             <b>This page couldn't be loaded.</b>
+            {detail.httpStatus && detail.httpStatus >= 500 && <p>The site refused or failed the request. Many sites turn away automated readers like Claude's.</p>}
             <pre>{detail.error}</pre>
           </div>
         ) : (

@@ -690,8 +690,14 @@ impl Timeline {
         };
         let Some(&i) = src.tools.get(id) else { return };
         let i = i as usize;
-        let failed = block.get("is_error").and_then(Value::as_bool) == Some(true);
         let (text, image) = result_content(block.get("content"));
+        // A web page that came back as an HTTP error (Claude Code doesn't flag it as one) is a
+        // failed load, as a browser would show it.
+        let http_error = (self.steps[i].cat == "web").then(|| http_error_status(&text)).flatten();
+        let failed = block.get("is_error").and_then(Value::as_bool) == Some(true) || http_error.is_some();
+        if let Some(code) = http_error {
+            set(&mut self.details[i], "httpStatus", json!(code));
+        }
         {
             let step = &mut self.steps[i];
             step.state = if failed { "err" } else { "ok" };
@@ -1184,6 +1190,13 @@ fn line_delta(old: &str, new: &str) -> [u32; 2] {
     [add, del]
 }
 
+/// The status of a fetch that failed with an HTTP error: "The server returned HTTP 503 …".
+fn http_error_status(text: &str) -> Option<u16> {
+    let rest = text.trim_start().strip_prefix("The server returned HTTP ")?;
+    let code: u16 = rest.get(..3)?.parse().ok()?;
+    (code >= 400).then_some(code)
+}
+
 /// A JSON value as is when it's small enough, else its pretty text cut to `max` bytes.
 fn capped_json(v: &Value, max: usize) -> Value {
     let text = serde_json::to_string(v).unwrap_or_default();
@@ -1512,6 +1525,20 @@ d"), [2, 1]);
         assert_eq!(t.steps[0].kind, "prompt");
         assert_eq!(t.steps[0].agent, 1);
         assert_eq!(t.steps[0].turn, 0);
+    }
+
+    #[test]
+    fn web_fetch_http_errors_are_failed_loads() {
+        let mut t = Timeline::default();
+        let mut src = SourceState::new(0, false);
+        tool(&mut t, &mut src, "w1", "WebFetch", json!({"url": "https://www.amazon.in", "prompt": "x"}));
+        result(&mut t, &mut src, "w1", "The server returned HTTP 503 Service Unavailable.
+
+The response body was not retrieved.", false, json!({}));
+        assert_eq!(t.steps[0].state, "err");
+        assert_eq!(t.detail(0).unwrap()["httpStatus"], 503);
+        assert_eq!(http_error_status("The server returned HTTP 200 OK"), None);
+        assert_eq!(http_error_status("Some page text"), None);
     }
 
     #[test]

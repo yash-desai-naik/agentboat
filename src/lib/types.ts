@@ -179,6 +179,8 @@ export interface Detail {
   agentId?: string;
   input?: unknown;
   bytes?: number;
+  /** A web fetch that came back as an HTTP error. */
+  httpStatus?: number;
   questions?: { question: string; header?: string; options?: { label: string; description?: string }[] }[];
   answers?: Record<string, string> | null;
   error?: string;
