@@ -10,7 +10,8 @@ Run the installer. It installs for your Windows user only (no administrator righ
 `%LOCALAPPDATA%\Ccboat`. A newer installer upgrades in place; your settings are kept.
 
 Ccboat reads the sessions Claude Code keeps in `%USERPROFILE%\.claude` (or `CLAUDE_CONFIG_DIR`). It
-never writes there and never uses the network.
+never writes there; its only network use is checking GitHub for updates. Once installed, it offers
+new versions itself (**Ccboat ▾ → Check for updates**).
 
 > [!NOTE]
 > The installer isn't code-signed yet, so SmartScreen may show "Windows protected your PC": click

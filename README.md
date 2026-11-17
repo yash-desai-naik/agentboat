@@ -18,6 +18,10 @@ isn't code-signed yet, so SmartScreen may ask: **More info**, then **Run anyway*
 lists the file's SHA-256 checksum. You need [Claude Code](https://claude.com/claude-code) on the
 same machine; Ccboat shows its sessions.
 
+Ccboat keeps itself up to date: it tells you when a new version is out (**Ccboat ▾** in the title bar
+→ **Check for updates**), shows what's new, and installs it in place. Version 0.1.0 predates the
+updater, so install 0.2.0 or later from the Releases page once by hand.
+
 A macOS build will follow (it compiles, but hasn't been run on a Mac yet).
 
 ## What you see
@@ -119,8 +123,11 @@ Only from `~/.claude` (or `CLAUDE_CONFIG_DIR`), read-only:
 - `projects/<folder>/<sessionId>.jsonl`: the transcript, read as it grows;
 - `projects/<folder>/<sessionId>/subagents/agent-<id>.jsonl` and `.meta.json`: subagents.
 
-It never writes anywhere (except its own window settings in the WebView's storage) and never uses
-the network.
+It never writes anywhere (except its own window settings in the WebView's storage). Its only use of
+the network is the update check: it asks GitHub for Ccboat's latest release at start-up and once a
+day (turn that off in **Ccboat ▾ → About Ccboat**), and downloads an update only when you choose
+**Install and restart**. Updates are signed, and each download is checked against the key built
+into the app before it runs.
 
 ## Build from source
 

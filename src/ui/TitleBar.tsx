@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { checkForUpdates, useUpdate } from "../lib/update";
 import { appWindow, IS_MAC } from "../lib/tauri";
 import { useSession } from "../lib/store";
 import { settings, useSettings } from "../lib/settings";
 import { Chevron, PanelBottom, PanelLeft, PanelRight, Timeline } from "./Icons";
 
-export function TitleBar({ onPick }: { onPick: () => void }) {
+export function TitleBar({ onPick, onAbout }: { onPick: () => void; onAbout: () => void }) {
   const { head, phase } = useSession();
   const s = useSettings();
   const [maximized, setMaximized] = useState(false);
@@ -23,10 +25,7 @@ export function TitleBar({ onPick }: { onPick: () => void }) {
 
   return (
     <header className={IS_MAC ? "titlebar mac" : "titlebar"} data-tauri-drag-region>
-      <div className="brand" data-tauri-drag-region>
-        <img src="/icon.svg" width={16} height={16} alt="" data-tauri-drag-region />
-        <span data-tauri-drag-region>Ccboat</span>
-      </div>
+      <AppMenu onAbout={onAbout} />
       <div className="tb-fill" data-tauri-drag-region />
       <button className="session-switch" onClick={onPick} title="Open another session (Ctrl+O)">
         {head && <span className={`st-dot s-${head.status}`} />}
@@ -79,5 +78,60 @@ export function TitleBar({ onPick }: { onPick: () => void }) {
         </div>
       )}
     </header>
+  );
+}
+
+/** "Ccboat ▾": the app's menu (updates, About, GitHub). A dot marks an update on offer. */
+function AppMenu({ onAbout }: { onAbout: () => void }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const update = useUpdate();
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("mousedown", away);
+    window.addEventListener("keydown", esc);
+    return () => {
+      window.removeEventListener("mousedown", away);
+      window.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+  const pick = (f: () => void) => () => {
+    setOpen(false);
+    f();
+  };
+  return (
+    <div className="app-menu-wrap" ref={box}>
+      <button className={`brand${open ? " open" : ""}`} onClick={() => setOpen(!open)} title="Ccboat menu" aria-haspopup="menu" aria-expanded={open}>
+        <img src="/icon.svg" width={16} height={16} alt="" />
+        <span>Ccboat</span>
+        {update.info && <span className="brand-dot" title={`Version ${update.info.version} is available`} />}
+        <Chevron size={10} open />
+      </button>
+      {open && (
+        <div className="app-menu" role="menu">
+          {update.info ? (
+            <button role="menuitem" onClick={pick(onAbout)}>
+              Update to {update.info.version}…
+            </button>
+          ) : (
+            <button role="menuitem" onClick={pick(() => void checkForUpdates())}>
+              Check for updates
+            </button>
+          )}
+          <button role="menuitem" onClick={pick(onAbout)}>
+            About Ccboat
+          </button>
+          <div className="app-menu-sep" />
+          <button role="menuitem" onClick={pick(() => void invoke("open_repo_page").catch(() => {}))}>
+            Ccboat on GitHub
+          </button>
+          <button role="menuitem" onClick={pick(() => void invoke("open_releases_page").catch(() => {}))}>
+            Releases and changelog
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

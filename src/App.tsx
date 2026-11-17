@@ -4,6 +4,8 @@ import { goLive, getSession, setPlaying, stepBy, turnBy, useSession } from "./li
 import { settings, useSettings } from "./lib/settings";
 import { TitleBar } from "./ui/TitleBar";
 import { SessionPicker, Welcome } from "./ui/SessionPicker";
+import { AboutDialog } from "./ui/AboutDialog";
+import { UpdateNotice } from "./ui/UpdateNotice";
 import { ActivityBar, Sidebar, type View } from "./ide/Sidebar";
 import { EditorArea } from "./ide/EditorArea";
 import { TerminalPanel } from "./ide/TerminalPanel";
@@ -27,6 +29,7 @@ export function App() {
   const { head, steps, cursor, phase, follow, playing } = session;
   const s = useSettings();
   const [picking, setPicking] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [view, setView] = useState<View>("explorer");
   const ide = useMemo(() => derive(steps, cursor, head), [steps, cursor, head]);
 
@@ -99,7 +102,7 @@ export function App() {
 
   return (
     <div className="app">
-      <TitleBar onPick={() => setPicking(true)} />
+      <TitleBar onPick={() => setPicking(true)} onAbout={() => setAboutOpen(true)} />
       {!ready ? (
         <Welcome />
       ) : (
@@ -154,6 +157,8 @@ export function App() {
         </>
       )}
       {picking && <SessionPicker onClose={() => setPicking(false)} />}
+      {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
+      <UpdateNotice />
     </div>
   );
 }

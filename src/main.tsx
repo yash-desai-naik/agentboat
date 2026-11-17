@@ -4,9 +4,11 @@ import { App } from "./App";
 import { openSession, startUpdates } from "./lib/store";
 import { appWindow, IN_TAURI } from "./lib/tauri";
 import { startMotion } from "./lib/motion";
+import { startUpdateChecks } from "./lib/update";
 import "./styles.css";
 import "./ide.css";
 import "./panels.css";
+import "./app.css";
 
 // Light or dark with the system, switching live.
 const dark = window.matchMedia("(prefers-color-scheme: dark)");
@@ -16,6 +18,7 @@ dark.addEventListener("change", applyTheme);
 
 startUpdates();
 startMotion();
+startUpdateChecks();
 createRoot(document.getElementById("root")!).render(<App />);
 
 // Reopen the session watched last, if its transcript is still there.

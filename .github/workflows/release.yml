@@ -1,6 +1,10 @@
 # Builds the Windows installer when a version tag (v1.2.3) is pushed, and creates a DRAFT GitHub
-# release with it, its SHA-256 checksum, and release notes taken from CHANGELOG.md plus
-# .github/release-footer.md. Review the draft on GitHub, then publish it.
+# release with it, its SHA-256 checksum, release notes taken from CHANGELOG.md plus
+# .github/release-footer.md, and the update feed (latest.json + the installer's signature) that
+# installed copies of Ccboat check. Review the draft on GitHub, then publish it: only then do
+# installed copies see the update.
+#
+# Needs the repository secret TAURI_SIGNING_PRIVATE_KEY (the updater key; see docs/DEVELOPMENT.md).
 #
 # macOS isn't built yet (it compiles, but hasn't been run on a Mac); it will be added like
 # Fileboat's, on macos-latest.
@@ -86,20 +90,28 @@ jobs:
         working-directory: src-tauri
         run: cargo test --lib
 
-      - name: Build the app and the installer
-        run: npx tauri build
+      - name: Build the app and the signed installer
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npx tauri build --config src-tauri/tauri.release.conf.json
 
-      - name: Collect the installer
+      - name: Collect the installer and its updater signature
         shell: pwsh
         run: |
           $v = "${{ needs.check.outputs.version }}"
           $file = "Ccboat_${v}_x64-setup.exe"
-          Copy-Item "src-tauri/target/release/bundle/nsis/$file" $file
+          $dir = "src-tauri/target/release/bundle/nsis"
+          Copy-Item "$dir/$file" $file
+          if (-not (Test-Path "$dir/$file.sig")) { Write-Error "No updater signature: is TAURI_SIGNING_PRIVATE_KEY set?"; exit 1 }
+          Copy-Item "$dir/$file.sig" "$file.sig"
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: Ccboat_*_x64-setup.exe
+          path: |
+            Ccboat_*_x64-setup.exe
+            Ccboat_*_x64-setup.exe.sig
 
   release:
     needs: [check, windows]
@@ -111,7 +123,7 @@ jobs:
         with:
           path: artifacts
 
-      - name: Checksums and release notes
+      - name: Checksums, release notes and the update feed
         env:
           VERSION: ${{ needs.check.outputs.version }}
           REPO: ${{ github.repository }}
@@ -138,6 +150,20 @@ jobs:
             .replace(/{repo}/g, repo)
             .replace(/{sha256}/g, sums[exe]);
           fs.writeFileSync("release-notes.md", `${section}\n\n${footer}`);
+
+          // The update feed installed copies read from releases/latest/download/latest.json.
+          const feed = {
+            version: v,
+            notes: section,
+            pub_date: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+            platforms: {
+              "windows-x86_64": {
+                signature: fs.readFileSync(`${exe}.sig`, "utf8").trim(),
+                url: `https://github.com/${repo}/releases/download/v${v}/${exe}`,
+              },
+            },
+          };
+          fs.writeFileSync("latest.json", JSON.stringify(feed, null, 2) + "\n");
           JS
 
       - name: Create the draft release
@@ -147,7 +173,12 @@ jobs:
           set -euo pipefail
           tag="${{ github.ref_name }}"
           v="${{ needs.check.outputs.version }}"
-          files=("out/Ccboat_${v}_x64-setup.exe" "out/SHA256SUMS.txt")
+          files=(
+            "out/Ccboat_${v}_x64-setup.exe"
+            "out/Ccboat_${v}_x64-setup.exe.sig"
+            "out/SHA256SUMS.txt"
+            "out/latest.json"
+          )
           if gh release view "$tag" >/dev/null 2>&1; then
             # Re-run of the same tag: replace the files and notes.
             gh release upload "$tag" "${files[@]}" --clobber

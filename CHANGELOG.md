@@ -6,6 +6,15 @@ All notable changes to Ccboat are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **About Ccboat** (the **Ccboat ▾** menu in the title bar): version, build, where Ccboat keeps its
+  settings and where it reads sessions from, with Copy details.
+- **Updates:** Ccboat checks GitHub for a new release at start-up and once a day (you can turn this
+  off in About), shows a notice with what's new, and installs the update in place with
+  **Install and restart**. Each update is signed and checked against the key built into the app.
+  **Check for updates** in the menu checks right away. This is Ccboat's only use of the network.
+
 ## [0.1.0] - 2026-11-17
 
 The first release: watch a Claude Code session as a read-only IDE, live or replayed.

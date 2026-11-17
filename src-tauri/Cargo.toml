@@ -30,6 +30,10 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value", "preserve_order"] }
 # %USERPROFILE% / $HOME for ~/.claude.
 dirs = "7"
+# Updates from GitHub releases, signature-checked against the key in tauri.conf.json.
+tauri-plugin-updater = "2"
+# CCBOAT_UPDATE_URL (a test feed) is parsed as a URL.
+url = "2"
 
 [target.'cfg(windows)'.dependencies]
 # Already built for Tauri's windowing; whether a registered session's process is still running.

@@ -30,7 +30,11 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "app", "dmg"],
+    "targets": [
+      "nsis",
+      "app",
+      "dmg"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -57,5 +61,16 @@
     "category": "DeveloperTool",
     "shortDescription": "Watch a Claude Code session as an IDE",
     "longDescription": "Ccboat: a read-only, IDE-style view of a Claude Code session, live as it works or replayed step by step."
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEExNjMzMjgxREMxMjE2NjEKUldSaEZoTGNnVEpqb2ZMZlQ1NUlsZHp1aHNBbjQrUGFPdUhBMERQdWp6TGwwdkg4TUJQNlFuNkIK",
+      "endpoints": [
+        "https://github.com/yash-desai-naik/ccboat/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

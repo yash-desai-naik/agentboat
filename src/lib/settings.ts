@@ -18,6 +18,10 @@ export interface Settings {
   showSidebar: boolean;
   /** The timeline (scrubber and replay controls) under the editor; shown on demand. */
   showTimeline: boolean;
+  /** Look for a newer release on GitHub at start-up and once a day. */
+  checkUpdates: boolean;
+  /** A version you chose to skip: not announced again (a manual check still shows it). */
+  skippedUpdate: string;
 }
 
 const DEFAULTS: Settings = {
@@ -32,6 +36,8 @@ const DEFAULTS: Settings = {
   showPanel: true,
   showSidebar: true,
   showTimeline: false,
+  checkUpdates: true,
+  skippedUpdate: "",
 };
 
 const KEY = "ccb.settings";

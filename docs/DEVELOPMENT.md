@@ -64,6 +64,8 @@ Rust, `src-tauri/src/` (the window-free core `ccboat_core`, plus `main.rs` and `
   second and tied to the `Agent` step that started them (`meta.json`'s `toolUseId`, or the
   result's `agentId`). Status comes from the registry; a transcript written in the last 30 s but
   not registered (`claude -p`, SDK) counts as active.
+- `update.rs`: the updater (check, download, verify, install), driven by the UI's schedule;
+  `desktop.rs`: the About box's folders and the GitHub links (fixed addresses only).
 - `watch.rs`: one thread polls the open session every 250 ms (1 s while hidden) and emits
   `ccb:update` (new steps, changed earlier ones, the head) only when something changed. Commands:
   `list_sessions`, `open_session`, `close_session`, `step_detail(s)`.
@@ -127,9 +129,31 @@ from the source at its tag.
    `SHA256SUMS.txt`, and notes from the changelog plus `.github/release-footer.md`.
 6. Read the draft under Releases, then press **Publish release**.
 
-There is no auto-updater yet: a new version is installed by running its installer, which upgrades in
-place. macOS isn't built yet; when it is, it goes in the workflow as Fileboat's does
+Installed copies find the new version through `latest.json` on the latest published release
+(`releases/latest/download/latest.json`), which the workflow builds with the installer's updater
+signature. Drafts and pre-releases are never offered. macOS isn't built yet; when it is, it goes in the workflow as Fileboat's does
 (`macos-latest`, `--target aarch64-apple-darwin`, an ad-hoc signed DMG).
+
+### The updater key
+
+- Every update must be signed with Ccboat's updater key; installed copies check it against the
+  public key in `src-tauri/tauri.conf.json` (`plugins.updater.pubkey`).
+- Private key: `~/.tauri/ccboat-updater.key` on the maintainer's PC (no password), and the GitHub
+  repository secret `TAURI_SIGNING_PRIVATE_KEY` (its contents) for the Release workflow:
+
+  ```sh
+  gh secret set TAURI_SIGNING_PRIVATE_KEY -R yash-desai-naik/ccboat < ~/.tauri/ccboat-updater.key
+  ```
+
+- **Keep a backup of the key** (e.g. in a password manager). Without it, no new version can be signed
+  for existing installs.
+- Local builds don't need it. A signed one, as the workflow makes:
+  `TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/ccboat-updater.key)" TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" npx tauri build --config src-tauri/tauri.release.conf.json`.
+- Test the updater against a local feed: `CCBOAT_UPDATE_URL=http://127.0.0.1:8765/latest.json`
+  points a build at another feed. Tauri only accepts https feeds, so a local test build needs a
+  config with `"plugins": { "updater": { "dangerousInsecureTransportProtocol": true } }` passed with
+  `--config` (never in a release). The feed's `version` must match the version the installer was
+  built with: the signature names it, and a mismatch is refused as tampering.
 
 ## Memory and CPU
 
