@@ -104,6 +104,33 @@ UI, `src/` (React 19, CodeMirror 6, no state library):
   `isPaletteStep`); `panels.css` has their styles.
 - `styles.css` (Fileboat's palette, both themes, title bar, session list) and `ide.css`.
 
+## Release a new version
+
+Releases are built by GitHub Actions (`.github/workflows/release.yml`), so every download is built
+from the source at its tag.
+
+1. Pick the version ([Semantic Versioning](https://semver.org)).
+2. Set it in all three files: `"version"` in `package.json` and `src-tauri/tauri.conf.json`, and
+   `version` in `src-tauri/Cargo.toml` (then run `cargo build` once so `Cargo.lock` follows).
+3. In `CHANGELOG.md`, rename `## [Unreleased]` to `## [x.y.z] - YYYY-MM-DD`, add a fresh empty
+   `## [Unreleased]` above it, and add the version links at the bottom. Write entries for users.
+4. Commit, then tag and push:
+
+   ```sh
+   git commit -am "chore(release): x.y.z"
+   git tag -a vx.y.z -m "Ccboat x.y.z"
+   git push origin main vx.y.z
+   ```
+
+5. The Release workflow checks the version matches the tag in all three files, runs the Rust tests,
+   builds on `windows-latest`, and creates a **draft** release with the installer,
+   `SHA256SUMS.txt`, and notes from the changelog plus `.github/release-footer.md`.
+6. Read the draft under Releases, then press **Publish release**.
+
+There is no auto-updater yet: a new version is installed by running its installer, which upgrades in
+place. macOS isn't built yet; when it is, it goes in the workflow as Fileboat's does
+(`macos-latest`, `--target aarch64-apple-darwin`, an ad-hoc signed DMG).
+
 ## Memory and CPU
 
 WebView2 costs about the same per frame drawn whatever moves (measured for Agentsboat), so:

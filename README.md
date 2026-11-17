@@ -9,6 +9,17 @@ foundations as its siblings [Fileboat](https://github.com/yash-desai-naik/filebo
 [Tableboat](https://github.com/yash-desai-naik/tableboat) and Agentsboat. No Electron, no Node.js at
 runtime.
 
+## Download
+
+**Windows 10 and 11:** the installer is on the
+[Releases page](https://github.com/yash-desai-naik/ccboat/releases/latest)
+(`Ccboat_x.y.z_x64-setup.exe`). It installs for your user only, no administrator rights needed. It
+isn't code-signed yet, so SmartScreen may ask: **More info**, then **Run anyway**. Each release
+lists the file's SHA-256 checksum. You need [Claude Code](https://claude.com/claude-code) on the
+same machine; Ccboat shows its sessions.
+
+A macOS build will follow (it compiles, but hasn't been run on a Mac yet).
+
 ## What you see
 
 - **Editor.** A tab opens for each file Claude reads or changes. Reads open the file at the lines

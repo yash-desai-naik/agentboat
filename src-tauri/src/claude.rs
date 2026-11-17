@@ -124,15 +124,15 @@ mod tests {
             "D--projects-fileboat"
         );
         assert_eq!(
-            project_folder_name(r"C:\Users\Yash Desai\.claude\skills\eod-update"),
-            "C--Users-Yash-Desai--claude-skills-eod-update"
+            project_folder_name(r"C:\Users\Jane Doe\.claude\skills\daily-notes"),
+            "C--Users-Jane-Doe--claude-skills-daily-notes"
         );
         assert_eq!(project_folder_name("/home/me/my_app"), "-home-me-my-app");
     }
 
     #[test]
     fn folder_labels() {
-        assert_eq!(folder_label(r"D:\work\cf-api-nest\"), "cf-api-nest");
+        assert_eq!(folder_label(r"D:\work\my-api\"), "my-api");
         assert_eq!(folder_label("/a/b"), "b");
     }
 

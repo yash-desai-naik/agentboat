@@ -1,0 +1,159 @@
+# Builds the Windows installer when a version tag (v1.2.3) is pushed, and creates a DRAFT GitHub
+# release with it, its SHA-256 checksum, and release notes taken from CHANGELOG.md plus
+# .github/release-footer.md. Review the draft on GitHub, then publish it.
+#
+# macOS isn't built yet (it compiles, but hasn't been run on a Mac); it will be added like
+# Fileboat's, on macos-latest.
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the tag matches the version in every file
+        id: version
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          conf=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          pkg=$(node -p "require('./package.json').version")
+          cargo=$(sed -n 's/^version = "\(.*\)"/\1/p' src-tauri/Cargo.toml | head -1)
+          if [ "$conf" != "$v" ] || [ "$pkg" != "$v" ] || [ "$cargo" != "$v" ]; then
+            echo "Tag v$v, but tauri.conf.json says $conf, package.json $pkg, Cargo.toml $cargo."
+            exit 1
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Take the release notes from CHANGELOG.md
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          node - <<'JS'
+          const fs = require("fs");
+          const v = process.env.VERSION;
+          const text = fs.readFileSync("CHANGELOG.md", "utf8").replace(/\r\n/g, "\n");
+          const start = text.indexOf(`## [${v}]`);
+          if (start < 0) {
+            console.error(`CHANGELOG.md has no section '## [${v}]'.`);
+            process.exit(1);
+          }
+          const rest = text.slice(text.indexOf("\n", start) + 1);
+          const end = rest.match(/\n## \[|\n\[[^\]]+\]: /);
+          const body = (end ? rest.slice(0, end.index) : rest).trim();
+          if (!body) {
+            console.error(`The '## [${v}]' section of CHANGELOG.md is empty.`);
+            process.exit(1);
+          }
+          fs.writeFileSync(`${process.env.RUNNER_TEMP}/changelog-section.md`, body);
+          JS
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: notes
+          path: ${{ runner.temp }}/changelog-section.md
+
+  windows:
+    needs: check
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - name: Rust tests
+        working-directory: src-tauri
+        run: cargo test --lib
+
+      - name: Build the app and the installer
+        run: npx tauri build
+
+      - name: Collect the installer
+        shell: pwsh
+        run: |
+          $v = "${{ needs.check.outputs.version }}"
+          $file = "Ccboat_${v}_x64-setup.exe"
+          Copy-Item "src-tauri/target/release/bundle/nsis/$file" $file
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: Ccboat_*_x64-setup.exe
+
+  release:
+    needs: [check, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Checksums and release notes
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          mv artifacts/windows-installer/* out/
+          cd out
+          shasum -a 256 * > SHA256SUMS.txt
+          node - <<'JS'
+          const fs = require("fs");
+          const v = process.env.VERSION;
+          const repo = process.env.REPO;
+          const section = fs.readFileSync("../artifacts/notes/changelog-section.md", "utf8").trim();
+          const exe = `Ccboat_${v}_x64-setup.exe`;
+          const sums = Object.fromEntries(
+            fs.readFileSync("SHA256SUMS.txt", "utf8").trim().split("\n").map((line) => {
+              const [hash, file] = line.trim().split(/\s+/);
+              return [file.replace(/^\*/, ""), hash];
+            }),
+          );
+          const footer = fs.readFileSync("../.github/release-footer.md", "utf8")
+            .replace(/{version}/g, v)
+            .replace(/{repo}/g, repo)
+            .replace(/{sha256}/g, sums[exe]);
+          fs.writeFileSync("release-notes.md", `${section}\n\n${footer}`);
+          JS
+
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${{ github.ref_name }}"
+          v="${{ needs.check.outputs.version }}"
+          files=("out/Ccboat_${v}_x64-setup.exe" "out/SHA256SUMS.txt")
+          if gh release view "$tag" >/dev/null 2>&1; then
+            # Re-run of the same tag: replace the files and notes.
+            gh release upload "$tag" "${files[@]}" --clobber
+            gh release edit "$tag" --notes-file out/release-notes.md
+          else
+            gh release create "$tag" "${files[@]}" --draft --verify-tag \
+              --title "Ccboat $v" \
+              --notes-file out/release-notes.md
+          fi
