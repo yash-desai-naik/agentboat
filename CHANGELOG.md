@@ -6,6 +6,8 @@ All notable changes to Ccboat are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-17
+
 ### Added
 
 - **Alt+Z** wraps long lines in the editor, as in VS Code (remembered).
@@ -48,6 +50,7 @@ The first release: watch a Claude Code session as a read-only IDE, live or repla
 - Light on resources: about 200 MB of memory, 5–9% of one core following a live session, under 1%
   minimized. Never writes anywhere and never uses the network.
 
-[Unreleased]: https://github.com/yash-desai-naik/ccboat/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/yash-desai-naik/ccboat/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/yash-desai-naik/ccboat/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/yash-desai-naik/ccboat/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/yash-desai-naik/ccboat/releases/tag/v0.1.0
