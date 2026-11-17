@@ -78,6 +78,8 @@ pub struct Step {
     pub delta: Option<[u32; 2]>,
     /// A write that created the file.
     pub created: bool,
+    /// The size of a tool's response, in bytes (MCP, web and other tools; for the Network panel).
+    pub size: Option<u32>,
     /// Files a shell command wrote, copied, moved or deleted.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub files: Vec<FileOp>,
@@ -570,7 +572,9 @@ impl Timeline {
             _ => json!({
                 "kind": "generic",
                 "tool": name,
-                "input": truncate(&serde_json::to_string_pretty(input).unwrap_or_default(), 64 * 1024),
+                // The arguments as JSON, so the UI can show them as a tree; only a very large
+                // input (a whole document being uploaded) is cut, and then sent as text.
+                "input": capped_json(input, 64 * 1024),
             }),
         };
         self.push(src, step, detail)
@@ -753,6 +757,9 @@ impl Timeline {
             _ => {
                 let d = &mut self.details[i];
                 set(d, "output", json!(truncate(&text, TEXT_CAP)));
+                // The response's real size, for the Network panel (the text kept may be cut).
+                set(d, "bytes", json!(text.len()));
+                self.steps[i].size = Some(text.len().min(u32::MAX as usize) as u32);
                 if let Some(img) = image {
                     set(d, "image", img);
                 }
@@ -985,6 +992,7 @@ impl Step {
             bg: false,
             delta: None,
             created: false,
+            size: None,
             files: Vec::new(),
         }
     }
@@ -1174,6 +1182,16 @@ fn line_delta(old: &str, new: &str) -> [u32; 2] {
     }
     let del = counts.values().filter(|&&c| c > 0).sum::<i64>() as u32;
     [add, del]
+}
+
+/// A JSON value as is when it's small enough, else its pretty text cut to `max` bytes.
+fn capped_json(v: &Value, max: usize) -> Value {
+    let text = serde_json::to_string(v).unwrap_or_default();
+    if text.len() <= max {
+        v.clone()
+    } else {
+        json!(truncate(&serde_json::to_string_pretty(v).unwrap_or_default(), max))
+    }
 }
 
 fn count_lines(s: &str) -> u32 {

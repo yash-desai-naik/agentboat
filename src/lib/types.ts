@@ -54,6 +54,8 @@ export interface Step {
   bg: boolean;
   delta: [number, number] | null;
   created: boolean;
+  /** Response size in bytes (MCP, web and other tools). */
+  size: number | null;
   /** Files a shell command wrote, copied, moved or deleted (absent when none). */
   files?: { path: string; op: ShellOp; hasContent: boolean }[];
 }
@@ -176,6 +178,7 @@ export interface Detail {
   subagentType?: string | null;
   agentId?: string;
   input?: unknown;
+  bytes?: number;
   questions?: { question: string; header?: string; options?: { label: string; description?: string }[] }[];
   answers?: Record<string, string> | null;
   error?: string;

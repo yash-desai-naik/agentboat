@@ -63,8 +63,9 @@ pub fn live_sessions(claude_dir: &Path) -> HashMap<String, Registered> {
 }
 
 impl SessionList {
-    /// Live sessions first (newest activity first), then the most recent others, `limit` in all.
-    pub fn list(&mut self, claude_dir: &Path, limit: usize) -> Vec<SessionEntry> {
+    /// Live sessions first (newest activity first), then the most recent others, `limit` of
+    /// those, and how many older transcripts weren't listed.
+    pub fn list(&mut self, claude_dir: &Path, limit: usize) -> (Vec<SessionEntry>, usize) {
         let live = live_sessions(claude_dir);
         let mut files: Vec<(PathBuf, u64, SystemTime)> = Vec::new();
         if let Ok(projects) = std::fs::read_dir(claude_dir.join("projects")) {
@@ -89,6 +90,7 @@ impl SessionList {
 
         let mut out = Vec::new();
         let mut seen_live = 0;
+        let mut older = 0;
         for (path, size, mtime) in files {
             let id = path
                 .file_stem()
@@ -97,6 +99,7 @@ impl SessionList {
                 .to_string();
             let reg = live.get(&id);
             if reg.is_none() && out.len() - seen_live >= limit {
+                older += 1;
                 continue;
             }
             let peek = self.peek(&path, size, mtime);
@@ -130,7 +133,7 @@ impl SessionList {
         }
         // Live ones first, each group newest first (already sorted by mtime).
         out.sort_by_key(|e| !e.live);
-        out
+        (out, older)
     }
 
     fn peek(&mut self, path: &Path, size: u64, mtime: SystemTime) -> Peek {

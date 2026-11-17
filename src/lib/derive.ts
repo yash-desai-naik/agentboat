@@ -1,5 +1,5 @@
 import type { Head, Step, TaskItem } from "./types";
-import { baseName, pathKey, relativeTo, shortTool } from "./format";
+import { baseName, pathKey, relativeTo } from "./format";
 
 /**
  * The IDE as it stood at a step: which files Claude had touched, which tabs were open, the
@@ -26,7 +26,7 @@ export interface FileMark {
 
 export interface Tab {
   id: string;
-  kind: "file" | "output";
+  kind: "file" | "browser";
   title: string;
   path: string | null;
   /** The step whose content the tab shows. */
@@ -34,7 +34,17 @@ export interface Tab {
   agent: number;
 }
 
-export type Focus = "editor" | "terminal" | "search" | "git" | "chat" | "tasks" | "agents";
+export type Focus = "editor" | "terminal" | "search" | "git" | "chat" | "tasks" | "agents" | "network" | "ask" | "palette";
+
+/** Tools shown as a command run from the palette (a moment at the top of the editor). */
+export function isPaletteStep(s: Step): boolean {
+  return s.kind === "tool" && (s.cat === "skill" || s.tool === "ToolSearch");
+}
+
+/** Calls listed in the Network panel: every MCP tool, the web, and Claude's other tools. */
+export function isNetworkStep(s: Step): boolean {
+  return s.kind === "tool" && (s.cat === "mcp" || s.cat === "web" || s.cat === "other") && !isPaletteStep(s);
+}
 
 export interface Ide {
   current: Step | null;
@@ -58,6 +68,8 @@ export interface Ide {
   running: Step[];
   /** Subagents started so far (1-based numbers). */
   agentsStarted: Set<number>;
+  /** Network panel calls up to the cursor, oldest first. */
+  network: number[];
 }
 
 const MAX_TABS = 9;
@@ -77,6 +89,7 @@ export function derive(steps: Step[], cursor: number, head: Head | null): Ide {
   let activeShell = 0;
   let focus: Focus = "chat";
   const agentsStarted = new Set<number>();
+  const network: number[] = [];
   const end = Math.min(cursor, steps.length - 1);
 
   const openTab = (t: Tab) => {
@@ -207,16 +220,26 @@ export function derive(steps: Step[], cursor: number, head: Head | null): Ide {
       case "agent":
         focus = "agents";
         break;
-      case "web":
-      case "mcp":
-      case "other":
-      case "skill":
-      case "ask": {
-        const name = s.cat === "web" ? (s.tool ?? "Web") : shortTool(s.tool);
-        openTab({ id: "o:" + (s.tool ?? s.cat), kind: "output", title: name, path: null, step: i, agent: s.agent });
+      case "web": {
+        // A browser tab per site (searches share one), as a developer would open them.
+        network.push(i);
+        const host = s.tool === "WebSearch" ? "search" : hostOf(s.label);
+        openTab({ id: "w:" + host, kind: "browser", title: s.tool === "WebSearch" ? "Search" : host, path: null, step: i, agent: s.agent });
         focus = "editor";
         break;
       }
+      case "ask":
+        focus = "ask";
+        break;
+      case "skill":
+      case "mcp":
+      case "other":
+        if (isPaletteStep(s)) focus = "palette";
+        else {
+          network.push(i);
+          focus = "network";
+        }
+        break;
     }
   }
 
@@ -246,7 +269,13 @@ export function derive(steps: Step[], cursor: number, head: Head | null): Ide {
     focus,
     running,
     agentsStarted,
+    network,
   };
+}
+
+function hostOf(url: string): string {
+  const m = /^[a-z]+:\/\/([^/?#]+)/i.exec(url.trim());
+  return (m ? m[1] : url).replace(/^www\./, "").slice(0, 40) || "page";
 }
 
 /** The agent's display name: "Explore · Find the parser". */

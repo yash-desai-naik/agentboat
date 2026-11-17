@@ -1,11 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { highlightCommand, sliceTokens, TermOutput, Tokens } from "./termColor";
 import type { Ide } from "../lib/derive";
 import { agentHue, agentName } from "../lib/derive";
-import { stripAnsi } from "../lib/format";
 import { type Anim, seek, useDetails, useSession } from "../lib/store";
 import { useSettings } from "../lib/settings";
 import type { Detail, Head, Step } from "../lib/types";
-import { Terminal } from "../ui/Icons";
 import { frameDue } from "../lib/motion";
 
 /** Commands shown per terminal (older ones scroll away, as in a real terminal). */
@@ -13,7 +12,7 @@ const HISTORY = 40;
 /** Output lines shown per command. */
 const MAX_LINES = 500;
 
-export function TerminalPanel({ ide, head, steps }: { ide: Ide; head: Head | null; steps: Step[] }) {
+export function TerminalPanel({ ide, head, steps, switcher }: { ide: Ide; head: Head | null; steps: Step[]; switcher: React.ReactNode }) {
   const { anim } = useSession();
   // You can look at another terminal; the next command anywhere brings the view back to it.
   const [picked, setPicked] = useState<number | null>(null);
@@ -26,9 +25,7 @@ export function TerminalPanel({ ide, head, steps }: { ide: Ide; head: Head | nul
   return (
     <section className="panel">
       <div className="panel-tabs">
-        <span className="panel-title">
-          <Terminal size={14} /> Terminal
-        </span>
+        {switcher}
         <div className="term-tabs">
           {terminals.length === 0 && <span className="dim">No commands yet</span>}
           {terminals.map((n) => {
@@ -104,6 +101,7 @@ function TermEntry({ step, d, anim, branch, current, onGrow }: { step: Step; d: 
   const { typing, speed } = useSettings();
   const { playing } = useSession();
   const command = d?.command ?? step.label;
+  const toks = useMemo(() => highlightCommand(command, step.tool === "PowerShell"), [command, step.tool]);
   const animate = !!anim && anim.i === step.i && typing !== "off" && performance.now() - anim.at < anim.dur;
   const [typed, setTyped] = useState(animate ? 0 : command.length);
   const [showOut, setShowOut] = useState(!animate);
@@ -148,7 +146,9 @@ function TermEntry({ step, d, anim, branch, current, onGrow }: { step: Step; d: 
     <div className={`term-entry${current ? " current" : ""}${step.state === "err" ? " failed" : ""}`} onClick={() => seek(step.i)}>
       {d?.description && <div className="term-line t-comment"># {d.description}</div>}
       <PromptLine step={step} d={d} branch={branch}>
-        <span className="t-cmd">{command.slice(0, typed)}</span>
+        <span className="t-cmd">
+          <Tokens toks={typed >= command.length ? toks : sliceTokens(toks, typed)} />
+        </span>
         {typed < command.length && <span className="t-cursor" />}
       </PromptLine>
       {showOut && (
@@ -159,10 +159,18 @@ function TermEntry({ step, d, anim, branch, current, onGrow }: { step: Step; d: 
             </div>
           )}
           {step.bg && <div className="term-line t-dim">[running in the background{d?.taskId ? `: ${d.taskId}` : ""}]</div>}
-          {out?.stdout && <pre className="term-out">{out.stdout}</pre>}
-          {out?.stderr && <pre className={`term-out ${step.state === "err" ? "t-err" : "t-warn"}`}>{out.stderr}</pre>}
+          {out?.stdout && (
+            <pre className="term-out">
+              <TermOutput text={out.stdout} />
+            </pre>
+          )}
+          {out?.stderr && (
+            <pre className="term-out">
+              <TermOutput text={out.stderr} />
+            </pre>
+          )}
           {d?.interrupted && <div className="term-line t-err">^C (interrupted)</div>}
-          {step.state === "err" && !out?.stderr && !out?.stdout && d?.error && <pre className="term-out t-err">{trimOut(d.error)}</pre>}
+          {step.state === "err" && !out?.stderr && !out?.stdout && d?.error && <pre className="term-out"><TermOutput text={trimOut(d.error)} /></pre>}
         </>
       )}
     </div>
@@ -170,7 +178,13 @@ function TermEntry({ step, d, anim, branch, current, onGrow }: { step: Step; d: 
 }
 
 function trimOut(s: string): string {
-  const clean = stripAnsi(s).replace(/\r\n/g, "\n").replace(/\n+$/, "");
+  // A carriage return redraws its line (progress bars): keep what was drawn last.
+  const clean = s
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((l) => (l.includes("\r") ? l.slice(l.lastIndexOf("\r", l.length - 2) + 1).replace(/\r$/, "") : l))
+    .join("\n")
+    .replace(/\n+$/, "");
   const lines = clean.split("\n");
   if (lines.length <= MAX_LINES) return clean;
   const head = lines.slice(0, 60);

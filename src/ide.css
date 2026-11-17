@@ -1,6 +1,23 @@
 /* The workbench: activity bar, side bar, editor, terminal panel, Claude panel, timeline, status bar. */
 
 :root[data-theme="dark"] {
+  /* The terminal's 16 colours (ANSI), tuned to the theme. */
+  --a-0: #5a5953;
+  --a-1: #f2715e;
+  --a-2: #4cc38a;
+  --a-3: #e3b341;
+  --a-4: #6aa8ec;
+  --a-5: #c586c0;
+  --a-6: #4ec9b0;
+  --a-7: #d6d4cc;
+  --a-8: #8a887f;
+  --a-9: #ff8a7a;
+  --a-10: #6fdc9f;
+  --a-11: #f0cd6a;
+  --a-12: #8cbcf5;
+  --a-13: #d7a0d2;
+  --a-14: #7ee0cc;
+  --a-15: #ffffff;
   --tl-track: #353430;
   --tl-played: #6aa8ec;
   --tl-prompt: #f5f4ee;
@@ -14,6 +31,22 @@
   --tl-err: #f2715e;
 }
 :root[data-theme="light"] {
+  --a-0: #2b2a27;
+  --a-1: #b5352a;
+  --a-2: #1f883d;
+  --a-3: #9a6700;
+  --a-4: #2563a8;
+  --a-5: #8250df;
+  --a-6: #1b7c83;
+  --a-7: #6d6b63;
+  --a-8: #8f8c82;
+  --a-9: #cf222e;
+  --a-10: #2da44e;
+  --a-11: #b08800;
+  --a-12: #3b82d6;
+  --a-13: #a475f9;
+  --a-14: #3192aa;
+  --a-15: #141413;
   --tl-track: #e1ddd1;
   --tl-played: #2563a8;
   --tl-prompt: #141413;
@@ -999,6 +1032,94 @@
   word-break: break-word;
   font: inherit;
 }
+/* Commands, highlighted as a shell with syntax highlighting would. */
+.tk-cmd {
+  color: var(--syn-function);
+  font-weight: 600;
+}
+.tk-kw {
+  color: var(--syn-keyword);
+  font-weight: 600;
+}
+.tk-flag {
+  color: var(--syn-property);
+}
+.tk-str {
+  color: var(--syn-string);
+}
+.tk-var {
+  color: var(--a-5);
+}
+.tk-num {
+  color: var(--syn-number);
+}
+.tk-op {
+  color: var(--syn-keyword);
+}
+.tk-comment {
+  color: var(--syn-comment);
+  font-style: italic;
+}
+.tk-heredoc {
+  color: var(--term-text);
+  opacity: 0.72;
+}
+
+/* Output: ANSI colours as printed, else by what the line says. */
+.a-0 { color: var(--a-0); }
+.a-1 { color: var(--a-1); }
+.a-2 { color: var(--a-2); }
+.a-3 { color: var(--a-3); }
+.a-4 { color: var(--a-4); }
+.a-5 { color: var(--a-5); }
+.a-6 { color: var(--a-6); }
+.a-7 { color: var(--a-7); }
+.a-8 { color: var(--a-8); }
+.a-9 { color: var(--a-9); }
+.a-10 { color: var(--a-10); }
+.a-11 { color: var(--a-11); }
+.a-12 { color: var(--a-12); }
+.a-13 { color: var(--a-13); }
+.a-14 { color: var(--a-14); }
+.a-15 { color: var(--a-15); }
+.a-bold {
+  font-weight: 700;
+}
+.a-dim {
+  opacity: 0.65;
+}
+.o-err {
+  color: var(--a-1);
+}
+.o-warn {
+  color: var(--a-3);
+}
+.o-ok {
+  color: var(--a-2);
+}
+.o-info {
+  color: var(--a-2);
+  font-weight: 600;
+}
+.o-loc {
+  color: var(--a-6);
+}
+.o-dim {
+  color: var(--text-3);
+}
+.o-add {
+  color: var(--a-2);
+}
+.o-del {
+  color: var(--a-1);
+}
+.o-hunk {
+  color: var(--a-6);
+}
+.o-bold {
+  font-weight: 700;
+}
+
 .t-cursor {
   display: inline-block;
   width: 7px;

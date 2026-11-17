@@ -89,13 +89,23 @@ pub fn start(app: AppHandle) {
         .expect("couldn't start the follow thread");
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionPage {
+    sessions: Vec<SessionEntry>,
+    /// Older transcripts not listed (a larger `limit` lists them).
+    older: usize,
+}
+
+/// Running sessions, then the `limit` most recent others (80 unless asked for more).
 #[tauri::command(async)]
-pub fn list_sessions(sessions: tauri::State<'_, Sessions>) -> Vec<SessionEntry> {
+pub fn list_sessions(limit: Option<usize>, sessions: tauri::State<'_, Sessions>) -> SessionPage {
     let Some(dir) = claude_dir() else {
-        return Vec::new();
+        return SessionPage { sessions: Vec::new(), older: 0 };
     };
     let mut list = sessions.0.lock().unwrap_or_else(|e| e.into_inner());
-    list.list(&dir, 80)
+    let (sessions, older) = list.list(&dir, limit.unwrap_or(80).clamp(1, 5000));
+    SessionPage { sessions, older }
 }
 
 /// Opens a session's transcript (read whole, off the UI thread) and returns its head and steps.

@@ -29,7 +29,8 @@ npx tauri dev
 Rust, `src-tauri/src/` (the window-free core `ccboat_core`, plus `main.rs` and `watch.rs`):
 
 - `claude.rs`: the data folder, the session registry, finding transcripts (from Agentsboat).
-- `sessions.rs`: the session list: running ones from the registry (process alive, pid reuse told
+- `sessions.rs`: the session list (`limit` most recent, and how many older ones exist, for
+  "Show older sessions"): running ones from the registry (process alive, pid reuse told
   apart by its start time, `alive.rs`), then recent transcripts. Titles come from peeking at a
   file's first 96 KB (for `cwd`) and last 384 KB (`ai-title`, `custom-title`, `last-prompt`);
   peeks are cached by size and modification time.
@@ -83,9 +84,24 @@ UI, `src/` (React 19, CodeMirror 6, no state library):
 - `ide/CodeEditor.tsx`: read-only CodeMirror with the typing animation (common prefix and suffix
   of before and after give the change; the old text is marked, removed, the new text typed,
   then `unifiedMergeView` shows the diff).
-- `ide/EditorArea.tsx`, `TerminalPanel.tsx`, `ChatPanel.tsx`, `Sidebar.tsx` (Explorer, Search,
-  Source Control, Tasks, Subagents), `TimelineBar.tsx` (canvas: one mark per step, the most
-  significant per pixel column), `StatusBar.tsx`.
+- `ide/EditorArea.tsx` (file tabs, the browser tab for web fetches and searches, the question
+  dialog, the command palette), `TerminalPanel.tsx`, `ChatPanel.tsx`, `Sidebar.tsx` (Explorer,
+  Search, Source Control, Tasks, Subagents), `TimelineBar.tsx` (canvas: one mark per step, the
+  most significant per pixel column), `StatusBar.tsx`.
+- `ide/termColor.tsx`: the terminal's colours. Commands are tokenized (programs, flags, strings,
+  variables, operators, comments, heredoc bodies). Output with ANSI SGR codes keeps its colours
+  (16-colour palette in `ide.css`, both themes); plain output is coloured per line by what it
+  says (errors, warnings, passes, progress verbs, `file:line` locations, diffs, `git status`).
+  `\r` progress lines keep only what was drawn last.
+- `ide/NetworkPanel.tsx`: MCP, web and other tool calls as a DevTools-style request list
+  (server badge coloured from its name, status, time, size from the step summary) and an
+  inspector (Preview / Response / Request).
+- `ide/DataView.tsx`: shows any response by its shape, never by its server: an object that names
+  something becomes a record card (title, id, status-like fields as badges, people as chips,
+  long text rendered, nested parts collapsible); a list of objects, or an object wrapping one,
+  becomes a table of its most telling columns; text is markdown when it looks like it; anything
+  else is a JSON tree. Where each tool goes is decided in `lib/derive.ts` (`isNetworkStep`,
+  `isPaletteStep`); `panels.css` has their styles.
 - `styles.css` (Fileboat's palette, both themes, title bar, session list) and `ide.css`.
 
 ## Memory and CPU

@@ -108,9 +108,10 @@ export function closeSession() {
   set({ phase: "pick", head: null, steps: [], cursor: -1, follow: false, playing: false, anim: null });
 }
 
-export async function listSessions(): Promise<SessionEntry[]> {
-  if (!IN_TAURI) return [];
-  return invoke<SessionEntry[]>("list_sessions");
+/** Running sessions and the `limit` most recent others, with how many older ones exist. */
+export async function listSessions(limit = 80): Promise<{ sessions: SessionEntry[]; older: number }> {
+  if (!IN_TAURI) return { sessions: [], older: 0 };
+  return invoke<{ sessions: SessionEntry[]; older: number }>("list_sessions", { limit });
 }
 
 // ---------- live updates ----------

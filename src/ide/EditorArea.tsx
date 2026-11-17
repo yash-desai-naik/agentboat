@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { Ide, Tab } from "../lib/derive";
-import { agentHue, agentName } from "../lib/derive";
-import { baseName, pathKey, relativeTo, shortTool } from "../lib/format";
+import { agentHue, agentName, isPaletteStep } from "../lib/derive";
+import { baseName, pathKey, relativeTo } from "../lib/format";
 import { type Anim, useDetail, seek, useSession } from "../lib/store";
 import type { Detail, Head, Hunk, Step } from "../lib/types";
 import { CodeEditor, type Typing } from "./CodeEditor";
@@ -18,8 +18,11 @@ export function typingFor(anim: Anim | null, i: number): Typing | null {
 export function EditorArea({ ide, head, steps }: { ide: Ide; head: Head | null; steps: Step[] }) {
   const { anim } = useSession();
   const active = ide.tabs.find((t) => t.id === ide.activeTab) ?? null;
+  const cur = ide.current;
   return (
     <section className="editor-area">
+      {cur && cur.kind === "tool" && cur.cat === "ask" && <AskDialog step={cur} head={head} />}
+      {cur && isPaletteStep(cur) && <PaletteBar step={cur} />}
       <div className="tabstrip" role="tablist">
         {ide.tabs.map((t) => (
           <TabButton key={t.id} tab={t} active={t.id === ide.activeTab} step={steps[t.step]} />
@@ -50,7 +53,7 @@ function TabButton({ tab, active, step }: { tab: Tab; active: boolean; step: Ste
       title={tab.path ?? tab.title}
       onClick={() => seek(tab.step)}
     >
-      {tab.kind === "file" ? <FileIcon name={tab.title} /> : <span className="tab-out">⟩</span>}
+      {tab.kind === "file" ? <FileIcon name={tab.title} /> : <span className="tab-web" aria-hidden="true">◍</span>}
       <span className={`tab-title${dirty ? " modified" : ""}`}>{tab.title}</span>
       {tab.agent > 0 && <span className="agent-pip" style={{ ["--hue" as string]: agentHue(tab.agent) }} />}
       <span className="tab-close" aria-hidden="true">
@@ -96,7 +99,7 @@ function Breadcrumb({ path, cwd, extra }: { path: string; cwd: string | null; ex
 function TabBody({ tab, step, head, anim }: { tab: Tab; step: Step | undefined; head: Head | null; anim: Anim | null }) {
   const detail = useDetail(step);
   if (!step) return null;
-  if (tab.kind === "output") return <OutputView step={step} detail={detail} head={head} />;
+  if (tab.kind === "browser") return <BrowserView step={step} detail={detail} />;
   const cwd = head?.meta.cwd ?? null;
   const fromShell = step.cat === "shell" || step.cat === "git";
   const verb = fromShell ? "Written from the terminal" : step.cat === "read" ? "Read" : step.cat === "write" ? (step.created ? "Created" : "Wrote") : "Edited";
@@ -206,101 +209,136 @@ function patchView(hunks: Hunk[]) {
   return { original: a.join("\n"), doc: b.join("\n"), start: hunks[0]?.newStart ?? 1 };
 }
 
-// ---------- tool output tabs (web, MCP, skills, questions) ----------
+// ---------- the browser (WebFetch, WebSearch) ----------
 
-function OutputView({ step, detail, head }: { step: Step; detail: Detail | null | undefined; head: Head | null }) {
-  const title = step.cat === "web" ? step.tool : shortTool(step.tool);
+function BrowserView({ step, detail }: { step: Step; detail: Detail | null | undefined }) {
+  const search = step.tool === "WebSearch";
+  const address = search ? (detail?.query ?? step.label) : (detail?.url ?? step.label);
+  const out = detail?.output ?? "";
+  // A search's result text carries its links as JSON: `Links: [{"title":…,"url":…}]`.
+  const { links, summary } = useMemo(() => {
+    if (!search) return { links: [] as { title: string; url: string }[], summary: out };
+    const m = /^Links: (\[.*\])\s*$/m.exec(out);
+    let links: { title: string; url: string }[] = [];
+    if (m) {
+      try {
+        links = JSON.parse(m[1]);
+      } catch {
+        /* not JSON after all */
+      }
+    }
+    const summary = out
+      .replace(/^Web search results for query:.*$/m, "")
+      .replace(/^Links: \[.*\]\s*$/m, "")
+      .trim();
+    return { links, summary };
+  }, [out, search]);
   return (
     <div className="tab-body">
-      <div className="breadcrumb">
-        <span className="crumb root">{step.cat === "mcp" ? "MCP" : step.cat === "web" ? "Web" : "Tool"}</span>
-        <span className="crumb-sep">›</span>
-        <span className="crumb last">{title}</span>
-        <span className="breadcrumb-fill" />
-        <span className={`crumb-step ${step.state}`}>
-          {step.agent > 0 && (
-            <span className="agent-chip" style={{ ["--hue" as string]: agentHue(step.agent) }}>
-              {agentName(head, step.agent)}
-            </span>
-          )}
-          {step.state === "run" ? "Running…" : step.state === "err" ? "Failed" : "Done"}
+      <div className="browser-bar">
+        <span className="browser-nav" aria-hidden="true">
+          ‹ › ↻
         </span>
+        <div className="browser-address" title={address}>
+          {search ? <span className="browser-search">Search</span> : <span className="browser-lock">https</span>}
+          <span className="ellipsis">{search ? address : address.replace(/^https?:\/\//, "")}</span>
+        </div>
+        {step.state === "run" && <span className="spinner" />}
       </div>
-      <div className="output-view">
-        {detail === undefined ? null : !detail ? (
-          <p className="dim">No detail.</p>
+      {step.state === "run" && <div className="browser-loading" />}
+      <div className="browser-page">
+        {detail === undefined ? null : step.state === "run" ? (
+          <p className="dim">{search ? "Searching…" : "Loading the page…"}</p>
+        ) : detail?.error ? (
+          <div className="browser-error">
+            <b>This page couldn't be loaded.</b>
+            <pre>{detail.error}</pre>
+          </div>
         ) : (
-          <OutputBody step={step} d={detail} />
+          <>
+            {!search && detail?.prompt && <div className="browser-asked">Reading for: {detail.prompt}</div>}
+            {links.length > 0 && (
+              <div className="serp">
+                {links.map((l, k) => (
+                  <div key={k} className="serp-item" title={l.url}>
+                    <div className="serp-host">{l.url.replace(/^https?:\/\//, "").split("/")[0]}</div>
+                    <div className="serp-title">{l.title}</div>
+                    <div className="serp-url ellipsis">{l.url}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {summary && <Markdown text={summary} className="browser-md" />}
+          </>
         )}
       </div>
     </div>
   );
 }
 
-function OutputBody({ step, d }: { step: Step; d: Detail }) {
-  if (d.kind === "ask") {
-    return (
-      <div className="ask">
-        {(d.questions ?? []).map((q, k) => (
-          <div key={k} className="ask-q">
-            {q.header && <div className="ask-h">{q.header}</div>}
-            <div className="ask-text">{q.question}</div>
-            <div className="ask-opts">
-              {(q.options ?? []).map((o, j) => {
-                const chosen = d.answers && Object.values(d.answers).some((a) => a.includes(o.label));
-                return (
-                  <div key={j} className={`ask-opt${chosen ? " chosen" : ""}`}>
-                    <b>{o.label}</b>
-                    {o.description && <span> {o.description}</span>}
-                  </div>
-                );
-              })}
-            </div>
-            {d.answers?.[q.question] && <div className="ask-a">Answer: {d.answers[q.question]}</div>}
-          </div>
-        ))}
-      </div>
-    );
-  }
-  const input =
-    d.kind === "web"
-      ? [d.url ?? d.query, d.prompt].filter(Boolean).join("\n\n")
-      : typeof d.input === "string"
-        ? d.input
-        : d.input != null
-          ? JSON.stringify(d.input, null, 2)
-          : "";
-  const out = d.output ?? "";
-  const looksMarkdown = /^#{1,3} |\n#{1,3} |\n- |\*\*/.test(out) && !out.trimStart().startsWith("{");
+// ---------- a question for you (AskUserQuestion), as a dialog ----------
+
+export function AskDialog({ step, head }: { step: Step; head: Head | null }) {
+  const d = useDetail(step);
+  const waiting = step.state === "run";
   return (
-    <>
-      {input && (
-        <div className="out-section">
-          <div className="out-label">{step.cat === "web" ? (d.url ? "Fetch" : "Search") : "Input"}</div>
-          <pre className="out-pre">{input}</pre>
+    <div className="ask-overlay">
+      <div className="ask-dialog" role="dialog" aria-label="Claude is asking">
+        <div className="ask-dialog-head">
+          <span className="ask-dialog-icon">?</span>
+          <span>{step.agent > 0 ? `${agentName(head, step.agent)} asks` : "Claude asks"}</span>
+          <span className="nw-fill" />
+          {waiting ? <span className="ask-wait">Waiting for your answer…</span> : step.state === "err" ? <span className="ask-wait err">Dismissed</span> : <span className="ask-done">Answered</span>}
         </div>
-      )}
-      {d.image && (
-        <div className="out-section">
-          <img className="out-img" src={`data:${d.image.mediaType};base64,${d.image.data}`} alt="" />
-        </div>
-      )}
-      <div className="out-section">
-        <div className="out-label">{step.state === "run" ? "Waiting for the result…" : "Result"}</div>
-        {out && (looksMarkdown ? <Markdown text={out} className="out-md" /> : <pre className="out-pre">{prettyJson(out)}</pre>)}
+        {(d?.questions ?? []).map((q, k) => {
+          const answer = d?.answers?.[q.question];
+          const labels = (q.options ?? []).map((o) => o.label);
+          return (
+            <div key={k} className="ask-q">
+              {q.header && <div className="ask-h">{q.header}</div>}
+              <div className="ask-text">{q.question}</div>
+              <div className="ask-opts">
+                {(q.options ?? []).map((o, j) => {
+                  const chosen = !!answer && answer.includes(o.label);
+                  return (
+                    <div key={j} className={`ask-opt${chosen ? " chosen" : ""}`}>
+                      <span className="ask-radio">{chosen ? "●" : "○"}</span>
+                      <span>
+                        <b>{o.label}</b>
+                        {o.description && <span className="ask-desc"> {o.description}</span>}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              {answer && !labels.some((l) => answer.includes(l)) && <div className="ask-a">Answered: {answer}</div>}
+            </div>
+          );
+        })}
       </div>
-    </>
+    </div>
   );
 }
 
-function prettyJson(s: string): string {
-  const t = s.trim();
-  if ((t.startsWith("{") && t.endsWith("}")) || (t.startsWith("[") && t.endsWith("]"))) {
-    try {
-      return JSON.stringify(JSON.parse(t), null, 2);
-    } catch {
-      /* not JSON */
-    }
-  }
-  return s;
+// ---------- a command run from the palette (Skill, ToolSearch) ----------
+
+export function PaletteBar({ step }: { step: Step }) {
+  const d = useDetail(step);
+  const input = (d?.input ?? {}) as Record<string, unknown>;
+  const what = step.tool === "Skill" ? `Skill: ${String(input.skill ?? step.label)}` : `${step.tool}: ${String(input.query ?? step.label)}`;
+  const args = step.tool === "Skill" && typeof input.args === "string" ? input.args : null;
+  const result = (d?.output ?? "").split("\n").find((l) => l.trim()) ?? "";
+  return (
+    <div className="palette-wrap">
+      <div className="palette" role="dialog" aria-label="Command">
+        <div className="palette-input">
+          <span className="palette-prompt">&gt;</span>
+          <span className="ellipsis">{what}</span>
+          {step.state === "run" && <span className="spinner" />}
+        </div>
+        {args && <div className="palette-row dim ellipsis">{args}</div>}
+        {result && step.state !== "run" && <div className={`palette-row ellipsis${step.state === "err" ? " o-err" : ""}`}>{result}</div>}
+      </div>
+    </div>
+  );
 }

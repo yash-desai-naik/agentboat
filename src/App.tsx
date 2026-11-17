@@ -7,6 +7,8 @@ import { SessionPicker, Welcome } from "./ui/SessionPicker";
 import { ActivityBar, Sidebar, type View } from "./ide/Sidebar";
 import { EditorArea } from "./ide/EditorArea";
 import { TerminalPanel } from "./ide/TerminalPanel";
+import { NetworkPanel } from "./ide/NetworkPanel";
+import { Globe, Terminal } from "./ui/Icons";
 import { ChatPanel } from "./ide/ChatPanel";
 import { TimelineBar } from "./ide/TimelineBar";
 import { StatusBar } from "./ide/StatusBar";
@@ -29,6 +31,16 @@ export function App() {
   const ide = useMemo(() => derive(steps, cursor, head), [steps, cursor, head]);
 
   // While following or playing, the side bar shows what Claude is doing, as a developer's would.
+  // The bottom panel shows the terminal or the network log, whichever the current step is about
+  // (on any move, so clicking a call in the Claude panel shows it).
+  const [panelTab, setPanelTab] = useState<"terminal" | "network">("terminal");
+  const lastPanelFocus = useRef<Focus | null>(null);
+  useEffect(() => {
+    if (ide.focus === lastPanelFocus.current) return;
+    lastPanelFocus.current = ide.focus;
+    if (ide.focus === "network") setPanelTab("network");
+    else if (ide.focus === "terminal" || ide.focus === "git") setPanelTab("terminal");
+  }, [ide.focus]);
   const lastFocus = useRef<Focus | null>(null);
   useEffect(() => {
     if (!(follow || playing)) return;
@@ -119,7 +131,11 @@ export function App() {
                 {s.showPanel && (
                   <>
                     <Splitter dir="y" value={s.panelHeight} min={100} max={700} onChange={(v) => settings.set({ panelHeight: v })} edge="top" />
-                    <TerminalPanel ide={ide} head={head} steps={steps} />
+                    {panelTab === "terminal" ? (
+                      <TerminalPanel ide={ide} head={head} steps={steps} switcher={<PanelSwitch tab={panelTab} onTab={setPanelTab} calls={ide.network.length} />} />
+                    ) : (
+                      <NetworkPanel ide={ide} head={head} steps={steps} switcher={<PanelSwitch tab={panelTab} onTab={setPanelTab} calls={ide.network.length} />} />
+                    )}
                   </>
                 )}
               </div>
@@ -138,6 +154,20 @@ export function App() {
         </>
       )}
       {picking && <SessionPicker onClose={() => setPicking(false)} />}
+    </div>
+  );
+}
+
+function PanelSwitch({ tab, onTab, calls }: { tab: "terminal" | "network"; onTab: (t: "terminal" | "network") => void; calls: number }) {
+  return (
+    <div className="panel-switch" role="tablist">
+      <button role="tab" aria-selected={tab === "terminal"} className={tab === "terminal" ? "active" : ""} onClick={() => onTab("terminal")}>
+        <Terminal size={14} /> Terminal
+      </button>
+      <button role="tab" aria-selected={tab === "network"} className={tab === "network" ? "active" : ""} onClick={() => onTab("network")} title="MCP, web and other tool calls">
+        <Globe size={14} /> Network
+        {calls > 0 && <span className="panel-count">{calls}</span>}
+      </button>
     </div>
   );
 }

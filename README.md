@@ -15,15 +15,28 @@ runtime.
   read, with their real line numbers. Edits show as an inline diff (green added, red removed).
   While following live or playing a replay, the edit is acted out: the old text is selected and
   removed, the new text typed in at a moving caret, then the diff appears. Images Claude reads
-  are shown. Web fetches, MCP tools and questions open as output tabs.
+  are shown.
+- **Browser.** Web fetches open a browser tab per site: an address bar, what Claude was reading
+  for, and the page as a readable document. Web searches open a results page (site, title, link).
 - **Explorer.** Every file Claude has touched up to the current step, as a tree under the project
   folder, marked **R** (read), **M** (modified), **A** (added) or **D** (deleted). That includes
   files written from the terminal (`cat > f <<'EOF'`, `>`/`>>`, `tee`, `cp`, `mv`, `rm`, `sed -i`,
   PowerShell's `Set-Content`, `Out-File`, `Copy-Item`…); a heredoc's file opens in the editor
   with its content. Files outside the project are grouped by folder.
 - **Terminal.** Each command typed at a prompt (`PS D:\…>` for PowerShell, `/d/… (branch) $` for
-  Bash) with what it printed, stderr in colour, interrupted and background commands marked. One
-  terminal per subagent.
+  Bash) with what it printed, interrupted and background commands marked. One terminal per
+  subagent. Commands are highlighted as a shell with syntax highlighting would (programs, flags,
+  strings, variables, operators, comments; heredoc bodies dimmed). Output keeps a program's own
+  colours; plain output is coloured by what it says: errors red, warnings amber, passes green,
+  `file:line` locations, diffs and `git status` in git's colours.
+- **Network** (beside Terminal). Every MCP tool call, web request and other tool call, as a
+  browser's DevTools lists requests: server, call, status, time and size. The selected call shows
+  its request and response. The response is shown by the shape of its data, for any server: a
+  record (a task, a pull request, a page) as a card with its title, status badges, people and
+  fields; a list as a table; text as markdown; anything else as a JSON tree.
+- **Questions and commands.** When Claude asks you something, the question appears as a dialog
+  over the editor, with the answer you gave. Skills and tool searches flash up in a command
+  palette at the top of the editor.
 - **Search.** Claude's Grep and Glob searches with their results grouped by file.
 - **Source Control.** Files changed since the last commit, and the git activity: commits (message
   and hash), pushes and pulls (remote and range), branch switches, stashes, worktrees, `gh pr`.
@@ -51,6 +64,9 @@ runtime.
 
   Replay speed (0.1× to 16×), *Real pauses* (the session's own timing, long gaps shortened) or
   *Even steps*, and the typing animation (normal, fast, off) are set beside it.
+
+The session list (Ctrl+O) shows running sessions first, then the most recent ones; **Show older
+sessions** at its end lists more.
 
 Running sessions open following live: each new step appears within a quarter of a second of
 Claude Code writing it. If Claude moves faster than the animations, the view skips ahead rather

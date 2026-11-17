@@ -512,6 +512,21 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+.sl-older {
+  display: block;
+  margin: 10px auto 4px;
+  padding: 5px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: transparent;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+.sl-older:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
 .picker-backdrop {
   position: fixed;
   inset: 0;

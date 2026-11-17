@@ -6,6 +6,7 @@ import { appWindow, IN_TAURI } from "./lib/tauri";
 import { startMotion } from "./lib/motion";
 import "./styles.css";
 import "./ide.css";
+import "./panels.css";
 
 // Light or dark with the system, switching live.
 const dark = window.matchMedia("(prefers-color-scheme: dark)");

@@ -1,5 +1,5 @@
 import type { Ide } from "../lib/derive";
-import { duration, tokens } from "../lib/format";
+import { duration, shortTool, tokens } from "../lib/format";
 import { useSession } from "../lib/store";
 import type { Head } from "../lib/types";
 import { Branch } from "../ui/Icons";
@@ -77,7 +77,8 @@ export function StatusBar({ ide, head }: { ide: Ide; head: Head | null }) {
       )}
       {running && (
         <span className="sb-item sb-running ellipsis">
-          <span className="spinner" /> {running.tool}: {running.label}
+          <span className="spinner" /> {shortTool(running.tool)}
+          {running.label && !running.label.startsWith(shortTool(running.tool)) ? `: ${running.label}` : ""}
           {follow && atEnd ? ` · ${duration(now - running.ts)}` : ""}
           {ide.running.length > 1 ? ` (+${ide.running.length - 1})` : ""}
         </span>

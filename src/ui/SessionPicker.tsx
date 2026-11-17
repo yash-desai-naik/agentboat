@@ -9,6 +9,8 @@ const STATUS: Record<string, string> = { busy: "Working", waiting: "Needs you", 
 /** Every session you can watch: running ones first, then recent ones. Refreshed while open. */
 export function SessionList({ onOpened, autoFocus }: { onOpened?: () => void; autoFocus?: boolean }) {
   const [list, setList] = useState<SessionEntry[] | null>(null);
+  const [limit, setLimit] = useState(80);
+  const [older, setOlder] = useState(0);
   const [q, setQ] = useState("");
   const [sel, setSel] = useState(0);
   const { head } = useSession();
@@ -17,8 +19,12 @@ export function SessionList({ onOpened, autoFocus }: { onOpened?: () => void; au
   useEffect(() => {
     let stop = false;
     const load = () =>
-      listSessions()
-        .then((l) => !stop && setList(l))
+      listSessions(limit)
+        .then((p) => {
+          if (stop) return;
+          setList(p.sessions);
+          setOlder(p.older);
+        })
         .catch(() => !stop && setList([]));
     void load();
     const t = window.setInterval(load, 3000);
@@ -26,7 +32,7 @@ export function SessionList({ onOpened, autoFocus }: { onOpened?: () => void; au
       stop = true;
       window.clearInterval(t);
     };
-  }, []);
+  }, [limit]);
 
   useEffect(() => {
     if (autoFocus) input.current?.focus();
@@ -79,6 +85,11 @@ export function SessionList({ onOpened, autoFocus }: { onOpened?: () => void; au
         {recent.map((s) => (
           <Row key={s.path} s={s} selected={shown.indexOf(s) === sel} current={head?.id === s.id} onOpen={() => open(s)} />
         ))}
+        {older > 0 && list && (
+          <button className="sl-older" onClick={() => setLimit((l) => l + 100)}>
+            Show older sessions <span className="dim">({older} more)</span>
+          </button>
+        )}
       </div>
     </div>
   );
