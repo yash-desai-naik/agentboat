@@ -1,0 +1,534 @@
+/* Ccboat base: Fileboat's palette and type (both themes), the title bar, shared controls. The
+   workbench (side bar, editor, terminal, Claude panel, timeline) is in ide.css. */
+
+:root {
+  --font-ui: "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", "Cascadia Mono", Consolas, ui-monospace, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+  --fs-code: 13px;
+  --radius-control: 6px;
+  --titlebar-h: 38px;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1f1e1d;
+  --bg-chrome: #1a1918;
+  --bg-sidebar: #1f1e1d;
+  --editor-bg: #262624;
+  --panel-bg: #1f1e1d;
+  --card: #2a2a28;
+  --bg-hover: #31302d;
+  --bg-active: #3b3a36;
+  --border: #353430;
+  --border-strong: #4a4943;
+  --text: #f5f4ee;
+  --text-2: #c2c0b6;
+  --text-3: #9a9890;
+  --accent: #6aa8ec;
+  --accent-fill: #2f6fc0;
+  --selection: #2b3a4d;
+  --c-work: #6aa8ec;
+  --c-work-soft: rgba(106, 168, 236, 0.16);
+  --c-wait: #e3b341;
+  --c-wait-soft: rgba(227, 179, 65, 0.18);
+  --c-done: #4cc38a;
+  --c-done-soft: rgba(76, 195, 138, 0.16);
+  --c-idle: #8a887f;
+  --c-err: #f2715e;
+  --c-err-soft: rgba(242, 113, 94, 0.14);
+  --git-added: #46a971;
+  --git-modified: #d29922;
+  --git-deleted: #f2715e;
+  --edit-added: rgba(70, 169, 113, 0.16);
+  --edit-added-strong: rgba(70, 169, 113, 0.38);
+  --edit-deleted: rgba(242, 113, 94, 0.14);
+  --edit-deleted-strong: rgba(242, 113, 94, 0.36);
+  --editor-gutter: #6e7681;
+  --editor-current-line: rgba(255, 255, 255, 0.035);
+  --syn-keyword: #569cd6;
+  --syn-type: #4ec9b0;
+  --syn-function: #dcdcaa;
+  --syn-string: #ce9178;
+  --syn-number: #b5cea8;
+  --syn-literal: #569cd6;
+  --syn-property: #9cdcfe;
+  --syn-operator: #d4d4d4;
+  --syn-comment: #6a9955;
+  --syn-invalid: #f44747;
+  --term-bg: #1a1918;
+  --term-text: #d6d4cc;
+  --term-cwd: #4cc38a;
+  --term-branch: #6aa8ec;
+  --scrollbar: #4d4c46;
+  --shadow-pop: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f1ea;
+  --bg-chrome: #ebe8df;
+  --bg-sidebar: #efede5;
+  --editor-bg: #fbfaf6;
+  --panel-bg: #f6f4ee;
+  --card: #fdfcf8;
+  --bg-hover: #e3dfd3;
+  --bg-active: #dad5c7;
+  --border: #e1ddd1;
+  --border-strong: #d3cfc2;
+  --text: #141413;
+  --text-2: #5e5d59;
+  --text-3: #6d6b63;
+  --accent: #2563a8;
+  --accent-fill: #2a66b0;
+  --selection: #d3e2f4;
+  --c-work: #2563a8;
+  --c-work-soft: rgba(37, 99, 168, 0.1);
+  --c-wait: #9a6700;
+  --c-wait-soft: rgba(212, 160, 23, 0.18);
+  --c-done: #1f883d;
+  --c-done-soft: rgba(31, 136, 61, 0.1);
+  --c-idle: #8f8c82;
+  --c-err: #b5352a;
+  --c-err-soft: rgba(181, 53, 42, 0.1);
+  --git-added: #2e7d32;
+  --git-modified: #8a6400;
+  --git-deleted: #b5352a;
+  --edit-added: rgba(46, 125, 50, 0.12);
+  --edit-added-strong: rgba(46, 125, 50, 0.28);
+  --edit-deleted: rgba(181, 53, 42, 0.1);
+  --edit-deleted-strong: rgba(181, 53, 42, 0.26);
+  --editor-gutter: #9a9a9a;
+  --editor-current-line: rgba(0, 0, 0, 0.03);
+  --syn-keyword: #0000ff;
+  --syn-type: #227c96;
+  --syn-function: #795e26;
+  --syn-string: #a31515;
+  --syn-number: #008355;
+  --syn-literal: #0000ff;
+  --syn-property: #001080;
+  --syn-operator: #1f1f1f;
+  --syn-comment: #008000;
+  --syn-invalid: #cd3131;
+  --term-bg: #fbfaf6;
+  --term-text: #2b2a27;
+  --term-cwd: #1f883d;
+  --term-branch: #2563a8;
+  --scrollbar: #cdc9bc;
+  --shadow-pop: 0 12px 40px rgba(40, 30, 20, 0.18), 0 0 0 1px rgba(40, 30, 20, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 400 var(--fs-md) / 1.4 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  cursor: default;
+}
+
+button,
+select,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: default;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+.dim {
+  color: var(--text-3);
+}
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.app {
+  display: grid;
+  grid-template-rows: var(--titlebar-h) minmax(0, 1fr) auto auto;
+  height: 100vh;
+}
+
+/* ---------- title bar ---------- */
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  background: var(--bg-chrome);
+  border-bottom: 1px solid var(--border);
+  padding-left: 12px;
+}
+.titlebar.mac {
+  padding-left: 84px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  flex: none;
+}
+.tb-fill {
+  flex: 1;
+  height: 100%;
+  min-width: 8px;
+}
+
+.session-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(640px, 55vw);
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  min-width: 0;
+}
+.session-switch:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.ss-folder {
+  font-weight: 600;
+  color: var(--text);
+  flex: none;
+}
+.ss-sep {
+  color: var(--text-3);
+}
+.ss-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.st-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-idle);
+}
+.st-dot.s-working,
+.st-dot.s-active {
+  background: var(--c-work);
+  box-shadow: 0 0 0 3px var(--c-work-soft);
+  animation: blink 1s steps(2, jump-none) infinite;
+}
+.st-dot.s-waiting {
+  background: var(--c-wait);
+  box-shadow: 0 0 0 3px var(--c-wait-soft);
+  animation: blink 0.5s steps(2, jump-none) infinite;
+}
+.st-dot.s-idle {
+  background: var(--c-done);
+}
+.st-dot.s-ended {
+  background: var(--c-idle);
+  opacity: 0.6;
+}
+
+/* Loops are stepped (2 changes per cycle) and their durations divide one second, so they share
+   the frames lib/motion.ts pins them to. Never a smooth 60 fps loop: WebView2 pays per frame. */
+@keyframes blink {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.4;
+  }
+}
+
+.layout-toggles {
+  display: flex;
+  gap: 2px;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-3);
+  flex: none;
+}
+.icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.icon-btn[aria-pressed="true"] {
+  color: var(--text);
+}
+
+.caption-buttons {
+  display: flex;
+  height: 100%;
+  margin-left: 6px;
+}
+.caption-btn {
+  width: 46px;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  display: grid;
+  place-items: center;
+}
+.caption-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.caption-btn.close:hover {
+  background: #c42b1c;
+  color: #fff;
+}
+
+/* ---------- shared bits ---------- */
+
+.spinner {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--c-work-soft);
+  border-top-color: var(--c-work);
+  animation: spin 1s steps(8) infinite;
+  vertical-align: -1px;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+.seg button {
+  border: 0;
+  background: transparent;
+  padding: 2px 8px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.seg button[aria-pressed="true"] {
+  background: var(--bg-active);
+  color: var(--text);
+}
+
+.agent-chip {
+  --hue: 200;
+  display: inline-flex;
+  align-items: center;
+  max-width: 180px;
+  padding: 0 6px;
+  height: 17px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: hsl(var(--hue) 60% 72%);
+  background: hsl(var(--hue) 45% 50% / 0.16);
+  flex: none;
+}
+:root[data-theme="light"] .agent-chip {
+  color: hsl(var(--hue) 55% 32%);
+  background: hsl(var(--hue) 50% 50% / 0.13);
+}
+.agent-pip {
+  --hue: 200;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: hsl(var(--hue) 55% 58%);
+}
+
+/* ---------- session list (welcome page and picker) ---------- */
+
+.welcome {
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  padding: 48px 24px;
+}
+.welcome-inner {
+  width: min(860px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.welcome-head {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+.welcome h1 {
+  margin: 2px 0 6px;
+  font-size: 22px;
+  font-weight: 600;
+}
+.welcome p {
+  margin: 0;
+  color: var(--text-2);
+  max-width: 640px;
+  line-height: 1.5;
+}
+.welcome .session-list {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  overflow: hidden;
+}
+.welcome .sl-scroll {
+  max-height: calc(100vh - 300px);
+}
+
+.session-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.sl-filter {
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  padding: 12px 14px;
+  outline: none;
+  font-size: var(--fs-md);
+}
+.sl-filter::placeholder {
+  color: var(--text-3);
+}
+.sl-scroll {
+  overflow: auto;
+  padding: 4px 0 8px;
+}
+.sl-group {
+  padding: 10px 14px 4px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-3);
+}
+.sl-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 7px 14px;
+  text-align: left;
+}
+.sl-row:hover,
+.sl-row.selected {
+  background: var(--bg-hover);
+}
+.sl-row.current .sl-title::after {
+  content: " · open";
+  color: var(--accent);
+  font-weight: 400;
+}
+.sl-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.sl-title {
+  font-weight: 500;
+}
+.sl-sub {
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+.sl-sub b {
+  color: var(--text-2);
+  font-weight: 600;
+}
+.sl-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.picker-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 56px;
+  z-index: 50;
+}
+.picker {
+  width: min(720px, calc(100vw - 32px));
+  max-height: min(620px, calc(100vh - 100px));
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border-radius: 10px;
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+}
