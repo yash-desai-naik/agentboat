@@ -6,6 +6,7 @@ pub mod alive;
 pub mod claude;
 pub mod git;
 pub mod sessions;
+pub mod shell_files;
 pub mod time;
 pub mod timeline;
 pub mod viewer;

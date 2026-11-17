@@ -101,7 +101,8 @@ function PromptLine({ step, d, branch, cursor, children }: { step: Step; d: Deta
 }
 
 function TermEntry({ step, d, anim, branch, current, onGrow }: { step: Step; d: Detail | null | undefined; anim: Anim | null; branch: string | null; current: boolean; onGrow: () => void }) {
-  const { typing } = useSettings();
+  const { typing, speed } = useSettings();
+  const { playing } = useSession();
   const command = d?.command ?? step.label;
   const animate = !!anim && anim.i === step.i && typing !== "off" && performance.now() - anim.at < anim.dur;
   const [typed, setTyped] = useState(animate ? 0 : command.length);
@@ -114,7 +115,9 @@ function TermEntry({ step, d, anim, branch, current, onGrow }: { step: Step; d: 
       return;
     }
     // Type the command (long ones faster), then show what it printed.
-    const typeMs = Math.min(anim!.dur * 0.55, Math.max(150, command.length * (typing === "fast" ? 6 : 14)));
+    // Replaying slower than 1x types slower too; faster replays are already bounded by the step's time.
+    const perChar = (typing === "fast" ? 6 : 14) / (playing && speed < 1 ? speed : 1);
+    const typeMs = Math.min(anim!.dur * 0.55, Math.max(150, command.length * perChar));
     const t0 = anim!.at;
     let raf = 0;
     const last = { t: 0 };

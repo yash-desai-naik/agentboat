@@ -178,7 +178,7 @@ export function TimelineBar() {
       </div>
       <div className="tl-right">
         <select className="tl-select" value={set.speed} title="Replay speed" onChange={(e) => settings.set({ speed: Number(e.target.value) })}>
-          {[0.5, 1, 2, 4, 8, 16].map((s) => (
+          {[0.1, 0.25, 0.5, 1, 2, 4, 8, 16].map((s) => (
             <option key={s} value={s}>
               {s}×
             </option>

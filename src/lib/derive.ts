@@ -8,7 +8,7 @@ import { baseName, pathKey, relativeTo, shortTool } from "./format";
  * anywhere is instant and replay is exact.
  */
 
-export type FileStatus = "R" | "M" | "A";
+export type FileStatus = "R" | "M" | "A" | "D";
 
 export interface FileMark {
   key: string;
@@ -18,6 +18,8 @@ export interface FileMark {
   status: FileStatus;
   /** The last step that touched it. */
   last: number;
+  /** Changed from the terminal (its content may not be known). */
+  viaShell: boolean;
   /** Edits and writes to it. */
   changes: number;
 }
@@ -105,7 +107,8 @@ export function derive(steps: Step[], cursor: number, head: Head | null): Ide {
       case "write": {
         if (!s.path) break;
         const key = pathKey(s.path);
-        const prev = files.get(key);
+        // A file deleted earlier and touched again starts over.
+        const prev = files.get(key)?.status === "D" ? undefined : files.get(key);
         const touched = s.cat !== "read" && s.state !== "err";
         const status: FileStatus =
           s.cat === "read"
@@ -122,6 +125,7 @@ export function derive(steps: Step[], cursor: number, head: Head | null): Ide {
           status,
           last: i,
           changes: (prev?.changes ?? 0) + (touched ? 1 : 0),
+          viaShell: false,
         };
         files.set(key, mark);
         if (touched) changes.set(key, mark);
@@ -136,6 +140,48 @@ export function derive(steps: Step[], cursor: number, head: Head | null): Ide {
         shells.set(s.agent, list);
         activeShell = s.agent;
         focus = "terminal";
+        // Files the command wrote or deleted (a failed command changed nothing we can trust).
+        if (s.files && s.state !== "err") {
+          for (const f of s.files) {
+            const key = pathKey(f.path);
+            const prev = files.get(key);
+            if (f.op === "delete" && prev?.status === "A") {
+              // Created and deleted within the session: as if it never was (git agrees).
+              files.delete(key);
+              changes.delete(key);
+              const at = tabs.findIndex((t) => t.id === "f:" + key);
+              if (at >= 0) tabs.splice(at, 1);
+              continue;
+            }
+            const fresh = !prev || prev.status === "A" || prev.status === "D";
+            const status: FileStatus =
+              f.op === "delete" ? "D" : f.op === "write" || f.op === "touch" ? (fresh ? "A" : "M") : prev?.status === "A" ? "A" : "M";
+            const mark: FileMark = {
+              key,
+              path: f.path,
+              rel: relativeTo(f.path, cwd),
+              status,
+              last: i,
+              changes: (prev?.changes ?? 0) + 1,
+              viaShell: true,
+            };
+            files.set(key, mark);
+            changes.set(key, mark);
+            if (f.op === "delete") {
+              // Its tab closes, as an editor's does when the file goes away.
+              const at = tabs.findIndex((t) => t.id === "f:" + key);
+              if (at >= 0) tabs.splice(at, 1);
+            }
+          }
+          // Files written from the terminal with their text in the command (a heredoc, an echo)
+          // open in the editor too; copies and program output only show in Explorer.
+          for (const f of s.files) {
+            if (f.op === "write" && f.hasContent) {
+              openTab({ id: "f:" + pathKey(f.path), kind: "file", title: baseName(f.path), path: f.path, step: i, agent: s.agent });
+            }
+          }
+          if (activeTab && !tabs.some((t) => t.id === activeTab)) activeTab = tabs[tabs.length - 1]?.id ?? null;
+        }
         if (s.cat === "git" && s.git) {
           git.push(i);
           if (s.state === "ok") {

@@ -12,6 +12,7 @@
 //! tool's result arrives on a later line. Such steps are listed by [`Timeline::take_dirty`].
 
 use crate::git::{self, GitInfo};
+use crate::shell_files::{self, FileOp};
 use crate::time::parse_iso_ms;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
@@ -77,6 +78,9 @@ pub struct Step {
     pub delta: Option<[u32; 2]>,
     /// A write that created the file.
     pub created: bool,
+    /// Files a shell command wrote, copied, moved or deleted.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub files: Vec<FileOp>,
 }
 
 /// What the session is, from its transcript.
@@ -513,6 +517,9 @@ impl Timeline {
                     step.cat = "git";
                     step.git = Some(g);
                 }
+                let dir = cwd.or(self.meta.cwd.as_deref()).unwrap_or("");
+                step.files = shell_files::parse(command, dir);
+                self.apply_shell_files(&step.files);
                 json!({
                     "kind": "shell",
                     "shell": if name == "PowerShell" { "powershell" } else { "bash" },
@@ -520,6 +527,11 @@ impl Timeline {
                     "description": s("description"),
                     "cwd": cwd,
                     "background": step.bg,
+                    "files": step.files.iter().map(|f| json!({
+                        "path": f.path,
+                        "op": f.op,
+                        "content": f.content.as_deref().map(cap_file),
+                    })).collect::<Vec<_>>(),
                 })
             }
             "search" => {
@@ -562,6 +574,29 @@ impl Timeline {
             }),
         };
         self.push(src, step, detail)
+    }
+
+    /// What a shell command wrote becomes the known text of those files (a heredoc's body), so a
+    /// later Read or Edit of them has a "before".
+    fn apply_shell_files(&mut self, ops: &[FileOp]) {
+        for op in ops {
+            let key = path_key(&op.path);
+            match (op.op, &op.content) {
+                ("write", Some(c)) => {
+                    self.files.insert(key, Buffer { text: cap_file(c), start: 1 });
+                }
+                ("append", Some(c)) => {
+                    if let Some(b) = self.files.get_mut(&key).filter(|b| b.start <= 1) {
+                        b.text.push_str(c);
+                    }
+                }
+                ("delete", _) | ("write", None) | ("edit", _) => {
+                    // Gone, or changed in a way the command doesn't show.
+                    self.files.remove(&key);
+                }
+                _ => {}
+            }
+        }
     }
 
     fn edit_use(&mut self, step: &mut Step, name: &str, input: &Value) -> Value {
@@ -950,6 +985,7 @@ impl Step {
             bg: false,
             delta: None,
             created: false,
+            files: Vec::new(),
         }
     }
 }

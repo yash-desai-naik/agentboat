@@ -94,15 +94,16 @@ function Explorer({ ide, head }: { ide: Ide; head: Head | null }) {
   const { root, outside } = useMemo(() => buildTree(files, cwd), [ide.files, cwd]); // eslint-disable-line react-hooks/exhaustive-deps
   const active = ide.tabs.find((t) => t.id === ide.activeTab);
   const activeKey = active?.path ? pathKey(active.path) : null;
-  const counts = { R: 0, M: 0, A: 0 };
+  const counts = { R: 0, M: 0, A: 0, D: 0 };
   files.forEach((f) => counts[f.status]++);
   return (
     <>
       <SideHeader title="Explorer">
-        <span className="side-counts" title="Read · modified · added">
+        <span className="side-counts" title="Read · modified · added · deleted">
           {counts.R > 0 && <span className="st-R">{counts.R}</span>}
           {counts.M > 0 && <span className="st-M">{counts.M}</span>}
           {counts.A > 0 && <span className="st-A">{counts.A}</span>}
+          {counts.D > 0 && <span className="st-D">{counts.D}</span>}
         </span>
       </SideHeader>
       <div className="side-scroll tree">
@@ -144,7 +145,7 @@ function DirNode({ node, depth, activeKey, rootLabel }: { node: Node; depth: num
               className={`tree-row file${f.key === activeKey ? " active" : ""}`}
               style={{ paddingLeft: 6 + (depth + 1) * 12 + 14 }}
               onClick={() => seek(f.last)}
-              title={`${f.path}\nLast touched at step ${f.last + 1}`}
+              title={`${f.path}\nLast touched at step ${f.last + 1}${f.viaShell ? " (from the terminal)" : ""}`}
             >
               <FileIcon name={baseName(f.path)} />
               <span className={`tree-name st-${f.status}-name`}>{baseName(f.path)}</span>

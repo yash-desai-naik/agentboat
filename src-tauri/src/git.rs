@@ -274,7 +274,7 @@ fn heredoc_first_line(raw: &str) -> Option<String> {
 
 /// Shell-ish word splitting: quotes group, `&&` `||` `;` `|` `(` `)` are their own words. Newlines
 /// separate commands like `;`.
-fn split_words(cmd: &str) -> Vec<String> {
+pub(crate) fn split_words(cmd: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut cur = String::new();
     let mut chars = cmd.chars().peekable();

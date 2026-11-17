@@ -17,8 +17,10 @@ runtime.
   removed, the new text typed in at a moving caret, then the diff appears. Images Claude reads
   are shown. Web fetches, MCP tools and questions open as output tabs.
 - **Explorer.** Every file Claude has touched up to the current step, as a tree under the project
-  folder, marked **R** (read), **M** (modified) or **A** (added). Files outside the project are
-  grouped by folder.
+  folder, marked **R** (read), **M** (modified), **A** (added) or **D** (deleted). That includes
+  files written from the terminal (`cat > f <<'EOF'`, `>`/`>>`, `tee`, `cp`, `mv`, `rm`, `sed -i`,
+  PowerShell's `Set-Content`, `Out-File`, `Copy-Item`…); a heredoc's file opens in the editor
+  with its content. Files outside the project are grouped by folder.
 - **Terminal.** Each command typed at a prompt (`PS D:\…>` for PowerShell, `/d/… (branch) $` for
   Bash) with what it printed, stderr in colour, interrupted and background commands marked. One
   terminal per subagent.
@@ -47,7 +49,7 @@ runtime.
   | Ctrl+T | show / hide the timeline |
   | Ctrl+B / J / L | side bar / terminal / Claude panel |
 
-  Replay speed (0.5× to 16×), *Real pauses* (the session's own timing, long gaps shortened) or
+  Replay speed (0.1× to 16×), *Real pauses* (the session's own timing, long gaps shortened) or
   *Even steps*, and the typing animation (normal, fast, off) are set beside it.
 
 Running sessions open following live: each new step appears within a quarter of a second of
@@ -76,6 +78,8 @@ Ccboat sees what Claude Code writes to its transcript, so:
 - Claude's thinking is shown as "Thinking…" only: Claude Code stores it redacted.
 - "Changes since the last commit" is worked out from the session (a commit clears the list); it
   isn't read from git.
+- What a script does inside (`python - <<'EOF'` editing a file) can't be seen from its command
+  line, so those changes don't appear; nor do the files of a whole-folder copy (`cp -r`).
 - Files are shown as Claude saw them: what it read, and its edits applied to that. A file Claude
   edited without reading shows the edit itself (or the patch Claude Code logged).
 

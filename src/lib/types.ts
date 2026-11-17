@@ -54,7 +54,11 @@ export interface Step {
   bg: boolean;
   delta: [number, number] | null;
   created: boolean;
+  /** Files a shell command wrote, copied, moved or deleted (absent when none). */
+  files?: { path: string; op: ShellOp; hasContent: boolean }[];
 }
+
+export type ShellOp = "write" | "append" | "edit" | "touch" | "delete";
 
 export interface Meta {
   aiTitle: string | null;
@@ -159,6 +163,7 @@ export interface Detail {
   interrupted?: boolean | null;
   taskId?: string | null;
   isError?: boolean;
+  files?: { path: string; op: ShellOp; content: string | null }[];
   // search / web / agent / generic
   tool?: string;
   pattern?: string | null;

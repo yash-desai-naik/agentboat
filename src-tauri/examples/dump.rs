@@ -49,6 +49,12 @@ fn main() {
             println!("        git {:?}", g);
         }
     }
+    // Files written, copied, moved or deleted by shell commands.
+    let shell_ops: Vec<_> = v.steps().iter().flat_map(|s| s.files.iter().map(move |f| (s.i, s.state, f))).collect();
+    println!("shell file operations: {}", shell_ops.len());
+    for (i, state, f) in shell_ops.iter().take(show) {
+        println!("  #{i:<5} {state:<4} {:<7} {}{}", f.op, f.path, if f.content.is_some() { "  [content]" } else { "" });
+    }
     let total_bytes: usize = (0..n)
         .filter_map(|i| v.timeline.detail(i))
         .map(|d| serde_json::to_string(d).map(|s| s.len()).unwrap_or(0))

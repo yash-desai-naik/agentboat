@@ -264,6 +264,14 @@
 .st-A {
   color: var(--git-added);
 }
+.st-D {
+  color: var(--git-deleted);
+}
+.st-D-name {
+  color: var(--git-deleted);
+  text-decoration: line-through;
+  opacity: 0.8;
+}
 
 .file-icon {
   flex: none;

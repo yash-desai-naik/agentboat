@@ -51,6 +51,12 @@ Rust, `src-tauri/src/` (the window-free core `ccboat_core`, plus `main.rs` and `
   `-am` or a heredoc. Only commands that change something (commit, push, pull, merge, rebase,
   checkout, switch, stash, worktree, `gh pr`…) count as git steps; `status`, `log`, `show`, `diff`
   stay terminal commands. git's own output gives the hash, branch, remote and range.
+- `shell_files.rs`: files a shell command writes, copies, moves or deletes (Bash redirections,
+  heredocs with their bodies kept as the content, `tee`, `touch`, `cp`, `mv`, `rm`, `sed -i`; the
+  PowerShell cmdlets). Heredoc bodies are taken out before tokenizing, so text inside them is never
+  mistaken for commands; `cd` within the command is followed; Git Bash drives (`/d/x`) become
+  `D:\x`; `$VAR` paths, `/dev/null`, recursive copies and deletes are skipped. A heredoc's content
+  becomes the file's known text, so a later Edit of it has a "before".
 - `viewer.rs`: one open session: the main transcript and each subagent's, read incrementally
   (only bytes appended since the last poll; a line without its newline waits). New lines from all
   transcripts are merged by timestamp, keeping each file's order. Subagents are found every
