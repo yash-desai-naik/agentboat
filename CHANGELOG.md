@@ -6,6 +6,8 @@ All notable changes to Ccboat are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-18
+
 ### Added
 
 - **Agents as collaborators:** the IDE shows the main session's screen, and subagents at work
@@ -89,7 +91,8 @@ The first release: watch a Claude Code session as a read-only IDE, live or repla
 - Light on resources: about 200 MB of memory, 5–9% of one core following a live session, under 1%
   minimized. Never writes anywhere and never uses the network.
 
-[Unreleased]: https://github.com/yash-desai-naik/ccboat/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/yash-desai-naik/ccboat/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/yash-desai-naik/ccboat/compare/v0.2.3...v0.3.0
 [0.2.3]: https://github.com/yash-desai-naik/ccboat/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/yash-desai-naik/ccboat/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/yash-desai-naik/ccboat/compare/v0.2.0...v0.2.1
