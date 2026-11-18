@@ -21,7 +21,7 @@ fn main() {
         took
     );
     for a in &head.agents {
-        println!("  agent {:?} {:?} step {:?}", a.description, a.kind, a.step);
+        println!("  agent {:?} {:?} step {:?} finished {}", a.description, a.kind, a.step, a.finished);
     }
     let mut cats = std::collections::BTreeMap::<String, usize>::new();
     for s in v.steps() {

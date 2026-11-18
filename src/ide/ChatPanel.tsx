@@ -1,5 +1,5 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { agentHue, agentName } from "../lib/derive";
+import { agentHue, agentName, agentProgress, type AgentProgress } from "../lib/derive";
 import { clock, duration, shortTool } from "../lib/format";
 import { type Anim, seek, useSession } from "../lib/store";
 import { settings, useSettings } from "../lib/settings";
@@ -31,6 +31,7 @@ export function ChatPanel({ head, steps, cursor }: { head: Head | null; steps: S
   });
 
   // How many steps each subagent had taken by the cursor, for its Agent row.
+  const agentRun = (n: number | undefined): AgentProgress | null => (n ? agentProgress(steps, cursor, head, n) : null);
   const agentSteps = (n: number | undefined): number | null => {
     if (!n) return null;
     let c = 0;
@@ -70,7 +71,7 @@ export function ChatPanel({ head, steps, cursor }: { head: Head | null; steps: S
           </button>
         )}
         {shown.map((s) => (
-          <ChatItem key={s.i} step={s} head={head} current={s.i === cursor} anim={anim?.i === s.i ? anim : null} agentSteps={agentSteps(agentOf.get(s.i))} />
+          <ChatItem key={s.i} step={s} head={head} current={s.i === cursor} anim={anim?.i === s.i ? anim : null} agentSteps={agentSteps(agentOf.get(s.i))} agentRun={agentRun(agentOf.get(s.i))} />
         ))}
         {live && head.status === "waiting" && (
           <div className="chat-state waiting">
@@ -93,12 +94,14 @@ const ChatItem = memo(function ChatItem({
   current,
   anim,
   agentSteps,
+  agentRun,
 }: {
   step: Step;
   head: Head | null;
   current: boolean;
   anim: Anim | null;
   agentSteps: number | null;
+  agentRun: AgentProgress | null;
 }) {
   const cls = `chat-item ${step.kind}${current ? " current" : ""}`;
   const chip =
@@ -153,7 +156,18 @@ const ChatItem = memo(function ChatItem({
             </span>
           )}
           {agentInfo && <span className="tool-meta">{agentInfo}</span>}
-          {step.state === "run" ? <span className="spinner" /> : took && <span className="tool-meta">{took}</span>}
+          {agentRun ? (
+            // The agent's own progress, not its Agent call's (a background agent's call returns at once).
+            agentRun.state === "running" || agentRun.state === "starting" ? (
+              <span className="spinner" title={agentRun.state === "starting" ? "Starting" : "Working"} />
+            ) : (
+              <span className="tool-meta">{agentRun.state}</span>
+            )
+          ) : step.state === "run" ? (
+            <span className="spinner" />
+          ) : (
+            took && <span className="tool-meta">{took}</span>
+          )}
         </div>
       );
     }

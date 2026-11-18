@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { FileMark, Ide } from "../lib/derive";
-import { agentHue, agentName } from "../lib/derive";
+import { agentHue, agentName, agentProgress } from "../lib/derive";
 import { baseName, clock, pathKey, relativeTo } from "../lib/format";
 import { seek, useDetail } from "../lib/store";
 import type { Head, Step } from "../lib/types";
@@ -374,25 +374,27 @@ function AgentsView({ ide, head, steps }: { ide: Ide; head: Head | null; steps: 
         {agents.length === 0 && <p className="side-empty">Subagents Claude starts show here, with what each is doing.</p>}
         {agents.map((a, k) => {
           const n = k + 1;
-          let count = 0;
-          let last: Step | null = null;
-          for (let i = 0; i <= cursor && i < steps.length; i++)
-            if (steps[i].agent === n) {
-              count++;
-              last = steps[i];
-            }
-          const started = ide.agentsStarted.has(n) || (a.step !== null && a.step <= cursor);
-          if (!started) return null;
-          const running = last && cursor === steps.length - 1 ? !a.finished : !!last && steps.slice(last.i + 1).some((s) => s.agent === n);
+          const p = agentProgress(steps, cursor, head, n);
+          if (!p.started) return null;
+          const { count, last } = p;
+          const running = p.state === "running" || p.state === "starting";
           return (
             <button key={a.id} className="agent-card" onClick={() => last && seek(last.i)} style={{ ["--hue" as string]: agentHue(n) }}>
               <div className="agent-card-head">
                 <span className="agent-pip" />
                 <span className="agent-card-name ellipsis">{agentName(head, n)}</span>
-                {running ? <span className="spinner" /> : <span className="list-meta">done</span>}
+                {running ? (
+                  <span className="agent-state">
+                    {p.state === "starting" && "starting "}
+                    <span className="spinner" />
+                  </span>
+                ) : (
+                  <span className="list-meta">{p.state === "stopped" ? "stopped" : "done"}</span>
+                )}
               </div>
               <div className="agent-card-sub">
                 {a.kind ?? "agent"} · {count} step{count === 1 ? "" : "s"}
+                {p.later > 0 && <span className="dim"> · {p.later} more later</span>}
               </div>
               {last && <div className="agent-card-last ellipsis">{last.kind === "tool" ? `${last.tool}: ${last.label}` : last.label}</div>}
             </button>

@@ -6,6 +6,14 @@ All notable changes to Ccboat are listed here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Subagents showed as **done** with **0 steps** while they were running, when viewing a step soon
+  after they started (and their Agent rows showed the launch call's time). An agent is now
+  *starting*, *running*, *done* or *stopped* as it really was at that step, with how many steps it
+  takes later; finished is read from the agent's own transcript, as newer Claude Code versions don't
+  record it in the agent's metadata.
+
 ## [0.2.2] - 2026-11-18
 
 ### Fixed

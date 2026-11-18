@@ -278,6 +278,43 @@ function hostOf(url: string): string {
   return (m ? m[1] : url).replace(/^www\./, "").slice(0, 40) || "page";
 }
 
+export interface AgentProgress {
+  /** Launched by the cursor (its Agent call is at or before it, or it has steps by then). */
+  started: boolean;
+  /** Its steps up to the cursor, and the last of them. */
+  count: number;
+  last: Step | null;
+  /** Its steps after the cursor (replaying the past). */
+  later: number;
+  /** `starting` (launched, nothing done yet), `running`, `done`, or `stopped` (never finished:
+   *  the session ended or was interrupted first). */
+  state: "starting" | "running" | "done" | "stopped";
+}
+
+/**
+ * Where subagent `n` stood at the cursor. An agent that does more after the cursor is running
+ * there; one that hasn't finished is running while the session is live. Background agents return
+ * from their Agent call at once, so that call's own state says nothing about the agent.
+ */
+export function agentProgress(steps: Step[], cursor: number, head: Head | null, n: number): AgentProgress {
+  const a = head?.agents[n - 1];
+  let count = 0;
+  let later = 0;
+  let last: Step | null = null;
+  for (const s of steps) {
+    if (s.agent !== n) continue;
+    if (s.i <= cursor) {
+      count++;
+      last = s;
+    } else later++;
+  }
+  const started = count > 0 || (a?.step != null && a.step <= cursor);
+  const live = !!head && head.status !== "ended";
+  const working = later > 0 || (!a?.finished && live);
+  const state = working ? (count === 0 ? "starting" : "running") : a?.finished || later === 0 && live ? "done" : "stopped";
+  return { started, count, last, later, state };
+}
+
 /** The agent's display name: "Explore · Find the parser". */
 export function agentName(head: Head | null, n: number): string {
   if (n === 0) return "Claude";

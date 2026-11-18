@@ -587,6 +587,13 @@
 .agent-card-head .agent-pip {
   background: hsl(var(--hue) 55% 58%);
 }
+.agent-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-xs);
+  color: var(--c-work);
+}
 .agent-card-name {
   font-weight: 600;
   flex: 1;

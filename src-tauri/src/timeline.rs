@@ -121,6 +121,10 @@ pub struct SourceState {
     pub tools: HashMap<String, u32>,
     /// A subagent's first user message is the task it was given.
     seen_prompt: bool,
+    /// The transcript's last reply ended its turn (`end_turn`) and nothing has started since: for
+    /// a subagent, it has finished. Newer Claude Code versions don't always write `finished` in
+    /// the agent's meta.json, so this is read from the transcript itself.
+    pub ended: bool,
 }
 
 impl SourceState {
@@ -470,6 +474,7 @@ impl Timeline {
                     self.push(src, s, Value::Null);
                 }
                 Some("tool_use") => {
+                    src.ended = false;
                     if main {
                         self.meta.last_block = Some("tool");
                     }
@@ -484,8 +489,11 @@ impl Timeline {
                 _ => {}
             }
         }
-        if main && msg.stop_reason.as_deref() == Some("end_turn") {
-            self.meta.turn_ended = Some(ts);
+        if msg.stop_reason.as_deref() == Some("end_turn") {
+            src.ended = true;
+            if main {
+                self.meta.turn_ended = Some(ts);
+            }
         }
     }
 
@@ -1539,6 +1547,20 @@ The response body was not retrieved.", false, json!({}));
         assert_eq!(t.detail(0).unwrap()["httpStatus"], 503);
         assert_eq!(http_error_status("The server returned HTTP 200 OK"), None);
         assert_eq!(http_error_status("Some page text"), None);
+    }
+
+    #[test]
+    fn a_subagent_is_finished_when_its_turn_ends() {
+        let mut t = Timeline::default();
+        let mut src = SourceState::new(1, true);
+        t.ingest(&mut src, r#"{"type":"user","isSidechain":true,"timestamp":"2026-11-17T10:00:00.000Z","message":{"role":"user","content":"Find the parser"}}"#);
+        tool(&mut t, &mut src, "g1", "Grep", json!({"pattern": "fn parse"}));
+        assert!(!src.ended);
+        t.ingest(&mut src, r#"{"type":"assistant","isSidechain":true,"timestamp":"2026-11-17T10:00:09.000Z","message":{"stop_reason":"end_turn","content":[{"type":"text","text":"Found it in parser.rs"}]}}"#);
+        assert!(src.ended);
+        // Resumed (SendMessage): working again.
+        tool(&mut t, &mut src, "g2", "Grep", json!({"pattern": "fn lex"}));
+        assert!(!src.ended);
     }
 
     #[test]

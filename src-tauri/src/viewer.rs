@@ -209,7 +209,7 @@ impl Viewer {
             if !a.info.finished
                 && let Some(m) = read_meta(&a.meta_path)
             {
-                a.info.finished = m.finished;
+                a.info.finished = m.finished || a.source.state.ended;
                 a.info.description = m.description.or(a.info.description.take());
                 a.info.kind = m.agent_type.or(a.info.kind.take());
             }
@@ -304,7 +304,15 @@ impl Viewer {
             waiting_for: self.waiting_for.clone(),
             name: self.name.clone(),
             pid: self.pid,
-            agents: self.agents.iter().map(|a| a.info.clone()).collect(),
+            // Finished per its meta.json, or because its transcript's last reply ended its turn.
+            agents: self
+                .agents
+                .iter()
+                .map(|a| AgentInfo {
+                    finished: a.info.finished || a.source.state.ended,
+                    ..a.info.clone()
+                })
+                .collect(),
             steps: self.timeline.steps.len(),
         }
     }
