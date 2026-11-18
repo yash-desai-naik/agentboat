@@ -57,10 +57,10 @@ export interface Step {
   /** Response size in bytes (MCP, web and other tools). */
   size: number | null;
   /** Files a shell command wrote, copied, moved or deleted (absent when none). */
-  files?: { path: string; op: ShellOp; hasContent: boolean }[];
+  files?: { path: string; op: ShellOp; hasContent: boolean; line?: number }[];
 }
 
-export type ShellOp = "write" | "append" | "edit" | "touch" | "delete";
+export type ShellOp = "write" | "append" | "edit" | "touch" | "delete" | "read";
 
 export interface Meta {
   aiTitle: string | null;
@@ -165,7 +165,7 @@ export interface Detail {
   interrupted?: boolean | null;
   taskId?: string | null;
   isError?: boolean;
-  files?: { path: string; op: ShellOp; content: string | null }[];
+  files?: { path: string; op: ShellOp; content: string | null; line?: number | null }[];
   // search / web / agent / generic
   tool?: string;
   pattern?: string | null;

@@ -6,6 +6,15 @@ All notable changes to Ccboat are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Agents as collaborators:** the IDE shows the main session's screen, and subagents at work
+  appear like teammates in a shared workspace instead of pulling the editor to their files: a
+  numbered, coloured avatar each on the tab bar (hover for what it's doing), dots on the tabs and
+  Explorer files they're on, and their name on the line they're reading or changing.
+- Files read from the terminal (`cat`, `sed -n 'X,Yp'`, `head`, `grep … file`, `Get-Content`)
+  show as read in Explorer, with the line the command starts at.
+
 ## [0.2.3] - 2026-11-18
 
 ### Fixed

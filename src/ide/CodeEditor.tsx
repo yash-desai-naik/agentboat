@@ -84,6 +84,59 @@ const marks = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
+// ---------- other agents on this file (presence) ----------
+
+/** A collaborator's place in the file: a 1-based line of the doc, a name tag and its colour. */
+export interface PresenceMark {
+  line: number;
+  label: string;
+  hue: number;
+}
+
+const setPresence = StateEffect.define<PresenceMark[]>();
+
+class NameTag extends WidgetType {
+  constructor(
+    readonly label: string,
+    readonly hue: number,
+  ) {
+    super();
+  }
+  toDOM() {
+    const s = document.createElement("span");
+    s.className = "ccb-presence-tag";
+    s.style.setProperty("--hue", String(this.hue));
+    s.textContent = this.label;
+    return s;
+  }
+  eq(o: NameTag) {
+    return o.label === this.label && o.hue === this.hue;
+  }
+}
+
+/** Kept as lines, not positions, and rebuilt when the doc changes (it's replaced wholesale). */
+const presenceField = StateField.define<{ items: PresenceMark[]; deco: DecorationSet }>({
+  create: () => ({ items: [], deco: Decoration.none }),
+  update(v, tr) {
+    let items = v.items;
+    for (const e of tr.effects) if (e.is(setPresence)) items = e.value;
+    if (items === v.items && !tr.docChanged) return v;
+    const doc = tr.state.doc;
+    const out = [];
+    const sorted = [...items].filter((m) => m.line >= 1 && m.line <= doc.lines).sort((a, b) => a.line - b.line);
+    for (const m of sorted) {
+      const line = doc.line(m.line);
+      out.push(Decoration.line({ attributes: { class: "ccb-presence-line", style: `--hue: ${m.hue}` } }).range(line.from));
+    }
+    for (const m of sorted) {
+      const line = doc.line(m.line);
+      out.push(Decoration.widget({ widget: new NameTag(m.label, m.hue), side: 1 }).range(line.to));
+    }
+    return { items, deco: Decoration.set(out, true) };
+  },
+  provide: (f) => EditorView.decorations.from(f, (v) => v.deco),
+});
+
 // ---------- the component ----------
 
 export interface Typing {
@@ -105,6 +158,8 @@ interface Props {
   typing: Typing | null;
   /** Show the end of the file rather than the change (a terminal-like log). */
   wrap?: boolean;
+  /** Other agents on this file, by line of the file (not of the doc). */
+  presence?: PresenceMark[];
 }
 
 const norm = (s: string) => s.replace(/\r\n/g, "\n");
@@ -131,7 +186,7 @@ function loadLanguage(name: string): Promise<Extension | null> {
   return p;
 }
 
-export function CodeEditor({ doc, original, name, startLine, typing, wrap }: Props) {
+export function CodeEditor({ doc, original, name, startLine, typing, wrap, presence }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const comp = useRef({
@@ -157,6 +212,7 @@ export function CodeEditor({ doc, original, name, startLine, typing, wrap }: Pro
           syntaxHighlighting(syntax),
           chrome,
           marks,
+          presenceField,
           c.lang.of([]),
           c.merge.of([]),
           c.wrap.of([]),
@@ -286,6 +342,16 @@ export function CodeEditor({ doc, original, name, startLine, typing, wrap }: Pro
     // `typing` changes identity each render; its fields are what matter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc, original, startLine, typing?.at, typing?.dur]);
+
+  // Collaborators' lines: file lines to doc lines (a partial read starts further down).
+  const presenceKey = JSON.stringify(presence ?? []) + ":" + startLine;
+  useEffect(() => {
+    const v = view.current;
+    if (!v) return;
+    const items = (presence ?? []).map((m) => ({ ...m, line: m.line - startLine + 1 }));
+    v.dispatch({ effects: setPresence.of(items) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presenceKey]);
 
   return <div className="code-editor" ref={host} />;
 }

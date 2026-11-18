@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef } from "react";
-import type { Ide, Tab } from "../lib/derive";
+import type { Ide, Presence, Tab } from "../lib/derive";
 import { agentHue, agentName, isPaletteStep } from "../lib/derive";
 import { baseName, pathKey, relativeTo } from "../lib/format";
-import { type Anim, useDetail, seek, useSession } from "../lib/store";
+import { type Anim, setWatch, useDetail, useDetails, seek, useSession } from "../lib/store";
 import type { Detail, Head, Hunk, Step } from "../lib/types";
-import { CodeEditor, type Typing } from "./CodeEditor";
+import { CodeEditor, type PresenceMark, type Typing } from "./CodeEditor";
 import { useSettings } from "../lib/settings";
 import { Markdown } from "./Markdown";
 import { FileIcon } from "./FileIcon";
@@ -19,19 +19,24 @@ export function typingFor(anim: Anim | null, i: number): Typing | null {
 export function EditorArea({ ide, head, steps }: { ide: Ide; head: Head | null; steps: Step[] }) {
   const { anim } = useSession();
   const active = ide.tabs.find((t) => t.id === ide.activeTab) ?? null;
-  const cur = ide.current;
+  // Dialogs and the palette belong to the watched one's screen: its question stays up while it
+  // waits for you, a palette command shows while it's the step being viewed.
+  const mine = ide.watchCurrent;
+  const onIt = !!mine && mine.i === ide.current?.i;
+  const presentOn = (key: string | null) => (key ? ide.presence.filter((p) => p.file?.key === key) : []);
   return (
     <section className="editor-area">
-      {cur && cur.kind === "tool" && cur.cat === "ask" && <AskDialog step={cur} head={head} />}
-      {cur && isPaletteStep(cur) && <PaletteBar step={cur} />}
+      {mine && mine.kind === "tool" && mine.cat === "ask" && (onIt || mine.state === "run") && <AskDialog step={mine} head={head} />}
+      {mine && onIt && isPaletteStep(mine) && <PaletteBar step={mine} />}
       <div className="tabstrip" role="tablist">
         {ide.tabs.map((t) => (
-          <TabButton key={t.id} tab={t} active={t.id === ide.activeTab} step={steps[t.step]} />
+          <TabButton key={t.id} tab={t} active={t.id === ide.activeTab} step={steps[t.step]} present={presentOn(t.path ? pathKey(t.path) : null)} head={head} />
         ))}
         <div className="tabstrip-fill" />
+        <PresenceStrip presence={ide.presence} head={head} />
       </div>
       {active ? (
-        <TabBody key={active.id} tab={active} step={steps[active.step]} head={head} anim={anim} />
+        <TabBody key={active.id} tab={active} step={steps[active.step]} head={head} anim={anim} present={presentOn(active.path ? pathKey(active.path) : null)} />
       ) : (
         <EmptyEditor head={head} />
       )}
@@ -39,7 +44,31 @@ export function EditorArea({ ide, head, steps }: { ide: Ide; head: Head | null; 
   );
 }
 
-function TabButton({ tab, active, step }: { tab: Tab; active: boolean; step: Step | undefined }) {
+/** Everyone else at work, as a collaborator's avatar: hover for what they're doing, click to follow. */
+function PresenceStrip({ presence, head }: { presence: Presence[]; head: Head | null }) {
+  if (!presence.length) return null;
+  return (
+    <div className="presence-strip" aria-label="Also working">
+      {presence.map((p) => {
+        const name = agentName(head, p.agent);
+        const doing = p.state === "starting" ? "starting" : p.last ? (p.last.kind === "tool" ? `${p.last.tool}: ${p.last.label}` : p.last.label) : "";
+        return (
+          <button
+            key={p.agent}
+            className={`presence-dot${p.state === "starting" ? " starting" : ""}`}
+            style={{ ["--hue" as string]: agentHue(p.agent) }}
+            title={`${name}\n${doing}${p.file ? `\nOn ${baseName(p.file.path)}` : ""}\n\nClick to watch its screen`}
+            onClick={() => setWatch(p.agent)}
+          >
+            {p.agent === 0 ? "C" : p.agent}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function TabButton({ tab, active, step, present, head }: { tab: Tab; active: boolean; step: Step | undefined; present: Presence[]; head: Head | null }) {
   const ref = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (active) ref.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -57,6 +86,13 @@ function TabButton({ tab, active, step }: { tab: Tab; active: boolean; step: Ste
       {tab.kind === "file" ? <FileIcon name={tab.title} /> : <span className="tab-web" aria-hidden="true">◍</span>}
       <span className={`tab-title${dirty ? " modified" : ""}`}>{tab.title}</span>
       {tab.agent > 0 && <span className="agent-pip" style={{ ["--hue" as string]: agentHue(tab.agent) }} />}
+      {present.length > 0 && (
+        <span className="tab-presence" title={present.map((p) => agentName(head, p.agent)).join("\n") + "\n(also on this file)"}>
+          {present.slice(0, 4).map((p) => (
+            <span key={p.agent} className="tab-presence-dot" style={{ ["--hue" as string]: agentHue(p.agent) }} />
+          ))}
+        </span>
+      )}
       <span className="tab-close" aria-hidden="true">
         <Close size={10} />
       </span>
@@ -97,7 +133,7 @@ function Breadcrumb({ path, cwd, extra }: { path: string; cwd: string | null; ex
   );
 }
 
-function TabBody({ tab, step, head, anim }: { tab: Tab; step: Step | undefined; head: Head | null; anim: Anim | null }) {
+function TabBody({ tab, step, head, anim, present }: { tab: Tab; step: Step | undefined; head: Head | null; anim: Anim | null; present: Presence[] }) {
   const detail = useDetail(step);
   if (!step) return null;
   if (tab.kind === "browser") return <BrowserView step={step} detail={detail} />;
@@ -124,7 +160,7 @@ function TabBody({ tab, step, head, anim }: { tab: Tab; step: Step | undefined; 
     <div className="tab-body">
       <Breadcrumb path={tab.path ?? step.path ?? tab.title} cwd={cwd} extra={extra} />
       {detail?.error && <div className="editor-banner err">{firstLines(detail.error, 4)}</div>}
-      <FileContent step={step} path={tab.path ?? step.path ?? ""} detail={detail} typing={typingFor(anim, step.i)} />
+      <FileContent step={step} path={tab.path ?? step.path ?? ""} detail={detail} typing={typingFor(anim, step.i)} present={present} head={head} />
     </div>
   );
 }
@@ -133,7 +169,27 @@ function firstLines(s: string, n: number) {
   return s.split("\n").slice(0, n).join("\n");
 }
 
-function FileContent({ step, path, detail, typing }: { step: Step; path: string; detail: Detail | null | undefined; typing: Typing | null }) {
+function FileContent({
+  step,
+  path,
+  detail,
+  typing,
+  present,
+  head,
+}: {
+  step: Step;
+  path: string;
+  detail: Detail | null | undefined;
+  typing: Typing | null;
+  present: Presence[];
+  head: Head | null;
+}) {
+  // Where each collaborator on this file is: the lines it read, or the line it changed.
+  const theirDetails = useDetails(present.map((p) => p.file!.ref));
+  const presenceMarks: PresenceMark[] = present.flatMap((p, k) => {
+    const line = presenceLine(theirDetails[k], path);
+    return line ? [{ line, label: agentName(head, p.agent), hue: agentHue(p.agent) }] : [];
+  });
   const name = baseName(path);
   const { wordWrap } = useSettings();
   const view = useMemo(() => fileView(step, detail, path), [step, detail, path]);
@@ -155,7 +211,7 @@ function FileContent({ step, path, detail, typing }: { step: Step; path: string;
     return <div className="editor-loading dim">{step.state === "run" ? "Waiting for the result…" : "Nothing to show for this step."}</div>;
   }
   // Reads don't animate: the file just opens.
-  return <CodeEditor doc={view.doc} original={view.original} name={name} startLine={view.start} typing={step.cat === "read" ? null : typing} wrap={wordWrap} />;
+  return <CodeEditor doc={view.doc} original={view.original} name={name} startLine={view.start} typing={step.cat === "read" ? null : typing} wrap={wordWrap} presence={presenceMarks} />;
 }
 
 /** What the editor shows for a file step: the file, or a change to it. */
@@ -193,6 +249,28 @@ function fileView(step: Step, d: Detail | null | undefined, path: string): { doc
 }
 
 /** Diff hunks (as Claude Code logs them) to a before/after pair of the changed regions. */
+/** The line of a file another agent is on: the start of what it read, or where it changed it. */
+function presenceLine(d: Detail | null | undefined, path: string): number | null {
+  if (!d) return null;
+  if (d.kind === "read") return d.startLine ?? 1;
+  if (d.kind === "edit") {
+    if (d.before != null && d.after != null) {
+      const a = d.before.replace(/\r\n/g, "\n");
+      const b = d.after.replace(/\r\n/g, "\n");
+      let i = 0;
+      while (i < a.length && i < b.length && a[i] === b[i]) i++;
+      return (d.startLine ?? 1) + (b.slice(0, i).match(/\n/g)?.length ?? 0);
+    }
+    if (d.patch?.length) return d.patch[0].newStart;
+    return d.startLine ?? 1;
+  }
+  if (d.kind === "shell") {
+    const f = d.files?.find((x) => pathKey(x.path) === pathKey(path));
+    if (f) return f.line ?? 1;
+  }
+  return null;
+}
+
 function patchView(hunks: Hunk[]) {
   const a: string[] = [];
   const b: string[] = [];

@@ -70,11 +70,29 @@ export interface Ide {
   agentsStarted: Set<number>;
   /** Network panel calls up to the cursor, oldest first. */
   network: number[];
+  /** Whose screen the view shows: 0 the main session, n subagent n. */
+  watch: number;
+  /** The watched one's latest step at the cursor (what "its screen" is on). */
+  watchCurrent: Step | null;
+  /**
+   * Everyone else at work at the cursor, as collaborators in a shared workspace: the main session
+   * (when watching an agent) and every running subagent, with the file each is on, if any.
+   */
+  presence: Presence[];
+}
+
+export interface Presence {
+  agent: number;
+  /** Its latest step at the cursor. */
+  last: Step | null;
+  /** The file it's on (its latest file step, read or changed), and that step. */
+  file: { key: string; path: string; step: number; ref: Step } | null;
+  state: "starting" | "running";
 }
 
 const MAX_TABS = 9;
 
-export function derive(steps: Step[], cursor: number, head: Head | null): Ide {
+export function derive(steps: Step[], cursor: number, head: Head | null, watch = 0): Ide {
   const cwd = head?.meta.cwd ?? null;
   const files = new Map<string, FileMark>();
   const tabs: Tab[] = [];
@@ -91,8 +109,11 @@ export function derive(steps: Step[], cursor: number, head: Head | null): Ide {
   const agentsStarted = new Set<number>();
   const network: number[] = [];
   const end = Math.min(cursor, steps.length - 1);
+  // Each one's latest file step, for presence.
+  const onFile = new Map<number, { key: string; path: string; step: number; ref: Step }>();
+  let watchCurrent: Step | null = null;
 
-  const openTab = (t: Tab) => {
+  const openTabFor = (t: Tab) => {
     const at = tabs.findIndex((x) => x.id === t.id);
     if (at >= 0) tabs[at] = t;
     else {
@@ -110,8 +131,13 @@ export function derive(steps: Step[], cursor: number, head: Head | null): Ide {
   for (let i = 0; i <= end; i++) {
     const s = steps[i];
     if (s.agent > 0) agentsStarted.add(s.agent);
+    const mine = s.agent === watch;
+    if (mine) watchCurrent = s;
+    // Only the watched one's steps open tabs, choose the terminal or move the focus: the others
+    // are collaborators, shown as presence, never pulling the view to their work.
+    const openTab = mine ? openTabFor : () => {};
     if (s.kind !== "tool") {
-      focus = "chat";
+      if (mine) focus = "chat";
       continue;
     }
     switch (s.cat) {
@@ -142,8 +168,9 @@ export function derive(steps: Step[], cursor: number, head: Head | null): Ide {
         };
         files.set(key, mark);
         if (touched) changes.set(key, mark);
+        onFile.set(s.agent, { key, path: s.path, step: i, ref: s });
         openTab({ id: "f:" + key, kind: "file", title: baseName(s.path), path: s.path, step: i, agent: s.agent });
-        focus = "editor";
+        if (mine) focus = "editor";
         break;
       }
       case "shell":
@@ -151,13 +178,23 @@ export function derive(steps: Step[], cursor: number, head: Head | null): Ide {
         const list = shells.get(s.agent) ?? [];
         list.push(i);
         shells.set(s.agent, list);
-        activeShell = s.agent;
-        focus = "terminal";
+        if (mine) {
+          activeShell = s.agent;
+          focus = "terminal";
+        }
         // Files the command wrote or deleted (a failed command changed nothing we can trust).
         if (s.files && s.state !== "err") {
           for (const f of s.files) {
             const key = pathKey(f.path);
             const prev = files.get(key);
+            if (f.op === "read") {
+              // Looked at from the terminal (cat, sed -n, grep … file): read, and where its reader is.
+              if (!prev || prev.status === "D") {
+                files.set(key, { key, path: f.path, rel: relativeTo(f.path, cwd), status: "R", last: i, changes: 0, viaShell: true });
+              }
+              onFile.set(s.agent, { key, path: f.path, step: i, ref: s });
+              continue;
+            }
             if (f.op === "delete" && prev?.status === "A") {
               // Created and deleted within the session: as if it never was (git agrees).
               files.delete(key);
@@ -190,6 +227,7 @@ export function derive(steps: Step[], cursor: number, head: Head | null): Ide {
           // open in the editor too; copies and program output only show in Explorer.
           for (const f of s.files) {
             if (f.op === "write" && f.hasContent) {
+              onFile.set(s.agent, { key: pathKey(f.path), path: f.path, step: i, ref: s });
               openTab({ id: "f:" + pathKey(f.path), kind: "file", title: baseName(f.path), path: f.path, step: i, agent: s.agent });
             }
           }
@@ -205,39 +243,41 @@ export function derive(steps: Step[], cursor: number, head: Head | null): Ide {
             if (s.git.ops.includes("push")) ahead = 0;
             if (s.git.branch) branch = s.git.branch;
           }
-          focus = "git";
+          if (mine) focus = "git";
         }
         break;
       }
       case "search":
         searches.push(i);
-        focus = "search";
+        if (mine) focus = "search";
         break;
       case "task":
-        if (s.tasks) tasks = s.tasks;
-        focus = "tasks";
+        // The task list is the watched one's (an agent may keep its own).
+        if (s.tasks && mine) tasks = s.tasks;
+        if (mine) focus = "tasks";
         break;
       case "agent":
-        focus = "agents";
+        if (mine) focus = "agents";
         break;
       case "web": {
         // A browser tab per site (searches share one), as a developer would open them.
         network.push(i);
         const host = s.tool === "WebSearch" ? "search" : hostOf(s.label);
         openTab({ id: "w:" + host, kind: "browser", title: s.tool === "WebSearch" ? "Search" : host, path: null, step: i, agent: s.agent });
-        focus = "editor";
+        if (mine) focus = "editor";
         break;
       }
       case "ask":
-        focus = "ask";
+        if (mine) focus = "ask";
         break;
       case "skill":
       case "mcp":
       case "other":
-        if (isPaletteStep(s)) focus = "palette";
-        else {
+        if (isPaletteStep(s)) {
+          if (mine) focus = "palette";
+        } else {
           network.push(i);
-          focus = "network";
+          if (mine) focus = "network";
         }
         break;
     }
@@ -249,8 +289,25 @@ export function derive(steps: Step[], cursor: number, head: Head | null): Ide {
   // Look back a little: anything started recently and not finished by the cursor's time.
   for (let i = end; i >= 0 && i > end - 60; i--) {
     const s = steps[i];
-    if (s.kind !== "tool" || s.bg) continue;
+    if (s.kind !== "tool" || s.bg || s.agent !== watch) continue;
     if (s.state === "run" || (s.end !== null && s.end > curTs && i !== end)) running.push(s);
+  }
+
+  // Everyone else who is at work at the cursor.
+  const presence: Presence[] = [];
+  const live = !!head && head.status !== "ended";
+  if (watch !== 0) {
+    let later = false;
+    for (let i = end + 1; i < steps.length && !later; i++) later = steps[i].agent === 0;
+    let last: Step | null = null;
+    for (let i = end; i >= 0 && !last; i--) if (steps[i].agent === 0) last = steps[i];
+    if (later || live) presence.push({ agent: 0, last, file: onFile.get(0) ?? null, state: "running" });
+  }
+  for (let n = 1; n <= (head?.agents.length ?? 0); n++) {
+    if (n === watch) continue;
+    const p = agentProgress(steps, end, head, n);
+    if (!p.started || (p.state !== "running" && p.state !== "starting")) continue;
+    presence.push({ agent: n, last: p.last, file: onFile.get(n) ?? null, state: p.state });
   }
 
   return {
@@ -270,6 +327,9 @@ export function derive(steps: Step[], cursor: number, head: Head | null): Ide {
     running,
     agentsStarted,
     network,
+    watch,
+    watchCurrent,
+    presence,
   };
 }
 

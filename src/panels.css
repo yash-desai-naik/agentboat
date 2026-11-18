@@ -665,3 +665,66 @@
   padding: 6px 12px;
   font-size: var(--fs-sm);
 }
+
+/* ---------- presence: everyone else at work in the workspace ---------- */
+
+.presence-strip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+.presence-dot {
+  --hue: 200;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: hsl(var(--hue) 50% 45%);
+  color: #fff;
+  font: 700 9px/1 var(--font-ui);
+  letter-spacing: -0.02em;
+  box-shadow: 0 0 0 2px var(--bg-chrome);
+}
+.presence-dot:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 2px hsl(var(--hue) 60% 65%);
+}
+.presence-dot.starting {
+  opacity: 0.55;
+}
+.tab-presence,
+.tree-presence {
+  display: inline-flex;
+  gap: 2px;
+  flex: none;
+}
+.tab-presence-dot {
+  --hue: 200;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: hsl(var(--hue) 60% 58%);
+}
+.ccb-presence-line {
+  --hue: 200;
+  box-shadow: inset 2px 0 0 hsl(var(--hue) 60% 58%);
+  background: hsl(var(--hue) 55% 50% / 0.08);
+}
+.ccb-presence-tag {
+  --hue: 200;
+  display: inline-block;
+  margin-left: 10px;
+  padding: 0 6px;
+  border-radius: 3px;
+  background: hsl(var(--hue) 50% 45%);
+  color: #fff;
+  font: 600 10.5px/16px var(--font-ui);
+  vertical-align: 1px;
+  white-space: nowrap;
+}

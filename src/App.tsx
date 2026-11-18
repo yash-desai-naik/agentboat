@@ -31,7 +31,7 @@ export function App() {
   const [picking, setPicking] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [view, setView] = useState<View>("explorer");
-  const ide = useMemo(() => derive(steps, cursor, head), [steps, cursor, head]);
+  const ide = useMemo(() => derive(steps, cursor, head, session.watch), [steps, cursor, head, session.watch]);
 
   // While following or playing, the side bar shows what Claude is doing, as a developer's would.
   // The bottom panel shows the terminal or the network log, whichever the current step is about

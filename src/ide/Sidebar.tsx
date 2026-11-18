@@ -94,6 +94,9 @@ function Explorer({ ide, head }: { ide: Ide; head: Head | null }) {
   const { root, outside } = useMemo(() => buildTree(files, cwd), [ide.files, cwd]); // eslint-disable-line react-hooks/exhaustive-deps
   const active = ide.tabs.find((t) => t.id === ide.activeTab);
   const activeKey = active?.path ? pathKey(active.path) : null;
+  // Collaborators on files now (shown as their colour dots).
+  const here: Here = new Map();
+  for (const p of ide.presence) if (p.file) here.set(p.file.key, [...(here.get(p.file.key) ?? []), p.agent]);
   const counts = { R: 0, M: 0, A: 0, D: 0 };
   files.forEach((f) => counts[f.status]++);
   return (
@@ -108,14 +111,17 @@ function Explorer({ ide, head }: { ide: Ide; head: Head | null }) {
       </SideHeader>
       <div className="side-scroll tree">
         {files.length === 0 && <p className="side-empty">Files appear here as Claude reads or changes them.</p>}
-        {(root.files.length > 0 || root.dirs.size > 0) && <DirNode node={root} depth={0} activeKey={activeKey} rootLabel />}
-        {outside.dirs.size > 0 && <DirNode node={outside} depth={0} activeKey={activeKey} rootLabel />}
+        {(root.files.length > 0 || root.dirs.size > 0) && <DirNode node={root} depth={0} activeKey={activeKey} rootLabel here={here} />}
+        {outside.dirs.size > 0 && <DirNode node={outside} depth={0} activeKey={activeKey} rootLabel here={here} />}
       </div>
     </>
   );
 }
 
-function DirNode({ node, depth, activeKey, rootLabel }: { node: Node; depth: number; activeKey: string | null; rootLabel?: boolean }) {
+/** Who else is on each file now: file key → agent numbers. */
+type Here = Map<string, number[]>;
+
+function DirNode({ node, depth, activeKey, rootLabel, here }: { node: Node; depth: number; activeKey: string | null; rootLabel?: boolean; here: Here }) {
   const [open, setOpen] = useState(true);
   // A chain of single folders reads as one row ("src/lib/ide").
   let n = node;
@@ -137,7 +143,7 @@ function DirNode({ node, depth, activeKey, rootLabel }: { node: Node; depth: num
       {open && (
         <>
           {dirs.map((d) => (
-            <DirNode key={d.path} node={d} depth={depth + 1} activeKey={activeKey} />
+            <DirNode key={d.path} node={d} depth={depth + 1} activeKey={activeKey} here={here} />
           ))}
           {files.map((f) => (
             <button
@@ -149,6 +155,13 @@ function DirNode({ node, depth, activeKey, rootLabel }: { node: Node; depth: num
             >
               <FileIcon name={baseName(f.path)} />
               <span className={`tree-name st-${f.status}-name`}>{baseName(f.path)}</span>
+              {here.get(f.key) && (
+                <span className="tree-presence">
+                  {here.get(f.key)!.slice(0, 3).map((n) => (
+                    <span key={n} className="tab-presence-dot" style={{ ["--hue" as string]: agentHue(n) }} />
+                  ))}
+                </span>
+              )}
               <span className={`tree-status st-${f.status}`}>{f.status}</span>
             </button>
           ))}

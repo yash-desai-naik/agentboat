@@ -31,6 +31,8 @@ export interface SessionState {
   follow: boolean;
   playing: boolean;
   anim: Anim | null;
+  /** Whose screen the IDE shows: 0 the main session, n subagent n (Follow). */
+  watch: number;
 }
 
 let state: SessionState = {
@@ -42,6 +44,7 @@ let state: SessionState = {
   follow: false,
   playing: false,
   anim: null,
+  watch: 0,
 };
 const subs = new Set<() => void>();
 
@@ -86,6 +89,7 @@ export async function openSession(path: string) {
       steps: r.steps,
       cursor: r.steps.length - 1,
       follow: live,
+      watch: 0,
       playing: false,
       anim: null,
     });
@@ -105,7 +109,7 @@ export function closeSession() {
   stopDirector();
   clearDetails();
   if (IN_TAURI) void invoke("close_session");
-  set({ phase: "pick", head: null, steps: [], cursor: -1, follow: false, playing: false, anim: null });
+  set({ phase: "pick", head: null, steps: [], cursor: -1, follow: false, playing: false, anim: null, watch: 0 });
 }
 
 /** Running sessions and the `limit` most recent others, with how many older ones exist. */
@@ -163,6 +167,12 @@ export function turnBy(d: number) {
   seek(steps.length - 1);
 }
 
+/** Watch the main session (0) or follow subagent `n`: the IDE shows that one's screen. */
+export function setWatch(n: number) {
+  if (n === state.watch) return;
+  set({ watch: n, anim: null });
+}
+
 export function goLive() {
   stopDirector();
   set({ follow: true, playing: false, cursor: state.steps.length - 1, anim: null });
@@ -187,6 +197,9 @@ function stopDirector() {
 
 /** Time a step gets on screen, by kind, before the next. */
 function dwell(s: Step): number {
+  // Someone else's step only updates presence: no time on screen, so ten busy agents never
+  // hold the view back.
+  if (s.agent !== state.watch) return 50;
   const t = settings.get().typing;
   if (t === "off") return 160;
   const f = t === "fast" ? 0.5 : 1;

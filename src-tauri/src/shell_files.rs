@@ -15,13 +15,17 @@ use serde::Serialize;
 pub struct FileOp {
     /// Absolute, in the platform's style (`D:\p\a.rs` on Windows).
     pub path: String,
-    /// `write` (created or replaced), `append`, `edit` (in place), `touch`, `delete`.
+    /// `write` (created or replaced), `append`, `edit` (in place), `touch`, `delete`, or `read`
+    /// (`cat`, `sed -n 'X,Yp'`, `head`, `grep … file`: the command looks at the file).
     pub op: &'static str,
     /// What was written, when the command says (a heredoc or an `echo`).
     #[serde(skip)]
     pub content: Option<String>,
     /// Whether `content` is known (the UI opens such files in the editor).
     pub has_content: bool,
+    /// For a read, the first line it looks at, when the command says (`sed -n '86,480p'` → 86).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub line: Option<u32>,
 }
 
 /// The file operations in a command run with working folder `cwd`.
@@ -50,8 +54,16 @@ pub fn parse(command: &str, cwd: &str) -> Vec<FileOp> {
     for op in out {
         match merged.iter_mut().find(|m| same_path(&m.path, &op.path)) {
             Some(m) => {
+                // Reading a file doesn't change what was done to it; a change after a read wins.
+                if op.op == "read" {
+                    if m.op == "read" && m.line.is_none() {
+                        m.line = op.line;
+                    }
+                    continue;
+                }
                 if !(m.op == "write" && matches!(op.op, "append" | "edit" | "touch")) {
                     m.op = op.op;
+                    m.line = None;
                 }
                 if op.content.is_some() {
                     m.content = match (&m.content, op.op) {
@@ -118,6 +130,7 @@ fn segment(seg: &[&str], cwd: &mut String, bodies: &[String], heredoc: &mut usiz
                 op: if append { "append" } else { "write" },
                 content,
                 has_content: false,
+                line: None,
             });
         }
         k += 2;
@@ -132,7 +145,16 @@ fn segment(seg: &[&str], cwd: &mut String, bodies: &[String], heredoc: &mut usiz
     let flags: Vec<&str> = args[1..].iter().copied().filter(|a| a.starts_with('-')).collect();
     let mut push = |p: &str, op: &'static str, content: Option<String>| {
         if let Some(path) = resolve(p, cwd) {
-            out.push(FileOp { path, op, content, has_content: false });
+            out.push(FileOp { path, op, content, has_content: false, line: None });
+        }
+    };
+    // A command that looks at a file (only names that are files: with an extension).
+    let read = |p: &str, line: Option<u32>, out: &mut Vec<FileOp>, cwd: &str| {
+        if !has_ext(p) {
+            return;
+        }
+        if let Some(path) = resolve(p, cwd) {
+            out.push(FileOp { path, op: "read", content: None, has_content: false, line });
         }
     };
 
@@ -198,6 +220,43 @@ fn segment(seg: &[&str], cwd: &mut String, bodies: &[String], heredoc: &mut usiz
             // Without -e, the first positional argument is the script.
             for p in positional.iter().skip(if has_e { 0 } else { 1 }) {
                 push(p, "edit", None);
+            }
+        }
+        "cat" | "bat" | "less" | "more" | "nl" => {
+            for p in &positional {
+                read(p, Some(1), out, cwd);
+            }
+        }
+        "head" | "tail" => {
+            // `head -n 40 file`, `head -40 file`: numbers are counts, not files.
+            for p in positional.iter().filter(|p| !p.chars().all(|c| c.is_ascii_digit() || c == '+')) {
+                read(p, if cmd_lower == "head" { Some(1) } else { None }, out, cwd);
+            }
+        }
+        "sed" if flags.iter().any(|f| *f == "-n") && !flags.iter().any(|f| f.starts_with("-i")) => {
+            // `sed -n '86,480p' file`: the script, then the files; the script's first number is
+            // where the reading starts.
+            let has_e = flags.iter().any(|f| *f == "-e");
+            let script = if has_e { flags_value(args, "-e") } else { positional.first().copied() };
+            let line = script.and_then(|s| {
+                let d: String = s.chars().take_while(|c| c.is_ascii_digit()).collect();
+                d.parse::<u32>().ok()
+            });
+            for p in positional.iter().skip(if has_e { 0 } else { 1 }) {
+                read(p, line, out, cwd);
+            }
+        }
+        "grep" | "rg" | "egrep" | "fgrep" | "findstr" if !flags.iter().any(|f| f.starts_with("-r") || f.starts_with("-R") || *f == "--recursive") || cmd_lower == "rg" => {
+            // The pattern, then the files (directories and globs are searches, not reads).
+            let pattern_from_flag = flags.iter().any(|f| *f == "-e" || *f == "-f");
+            for p in positional.iter().skip(if pattern_from_flag { 0 } else { 1 }) {
+                read(p, None, out, cwd);
+            }
+        }
+        "get-content" | "gc" | "type" => {
+            let paths = if cmd_lower == "type" { positional.clone() } else { ps_paths(args, &["-path", "-literalpath"]) };
+            for p in paths {
+                read(p, Some(1), out, cwd);
             }
         }
         "set-content" | "add-content" | "out-file" | "sc" | "ac" => {
@@ -414,6 +473,30 @@ mod tests {
             [("/proj/new.rs".to_string(), "write"), ("/proj/old.rs".to_string(), "delete"), ("/proj/tmp.txt".to_string(), "delete")]
         );
         assert_eq!(ops("sed -i 's/a/b/' src/x.ts src/y.ts", "/proj"), [("/proj/src/x.ts".to_string(), "edit"), ("/proj/src/y.ts".to_string(), "edit")]);
+    }
+
+    #[test]
+    fn reads_with_their_first_line() {
+        let got: Vec<_> = parse(
+            "cd /proj && sed -n '86,480p' src/a.ts && grep -n \"getUser(\" src/b.ts | head -3; cat docs/c.md; head -n 40 d.rs; grep -rn foo src",
+            "/w",
+        )
+        .into_iter()
+        .map(|o| (o.path.replace('\\', "/"), o.op, o.line))
+        .collect();
+        assert_eq!(
+            got,
+            [
+                ("/proj/src/a.ts".to_string(), "read", Some(86)),
+                ("/proj/src/b.ts".to_string(), "read", None),
+                ("/proj/docs/c.md".to_string(), "read", Some(1)),
+                ("/proj/d.rs".to_string(), "read", Some(1)),
+            ]
+        );
+        // A read never hides a change to the same file.
+        let got = parse("cat a.ts; sed -i 's/x/y/' a.ts; cat a.ts", "/proj");
+        assert_eq!(got.len(), 1);
+        assert_eq!(got[0].op, "edit");
     }
 
     #[test]
