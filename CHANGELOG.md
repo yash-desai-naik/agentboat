@@ -20,6 +20,9 @@ All notable changes to Ccboat are listed here. The format follows
   wall of monitors. Each tile shows what that agent is on (a file's lines, a command and its
   output, or its last words), with its state and steps; working agents first. Click one to follow
   it.
+- **Timeline lanes:** a lane per agent under the timeline's main track, showing when each one
+  was at work and every step it took; the followed agent's lane is highlighted. Hover a lane for
+  that agent's step there; click it to jump to that step and follow the agent.
 - A file an agent reads with only a terminal command (`sed -n 'X,Yp' file`, `cat`, `head`) opens in
   its editor at those lines, labelled *Read from the terminal*.
 - Files read from the terminal (`cat`, `sed -n 'X,Yp'`, `head`, `grep … file`, `Get-Content`)
