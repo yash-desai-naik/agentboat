@@ -16,6 +16,10 @@ All notable changes to Ccboat are listed here. The format follows
   card in Subagents) and the IDE becomes its screen: its tabs, its terminal, its steps in the
   Claude panel, with the others (Claude included) as collaborators. A coloured bar says whose screen
   it is; **Back to Claude** or Esc returns.
+- **Team view** (**⊞ Team** on the tab bar, or Ctrl+Shift+T): every agent's screen at once, like a
+  wall of monitors. Each tile shows what that agent is on (a file's lines, a command and its
+  output, or its last words), with its state and steps; working agents first. Click one to follow
+  it.
 - A file an agent reads with only a terminal command (`sed -n 'X,Yp' file`, `cat`, `head`) opens in
   its editor at those lines, labelled *Read from the terminal*.
 - Files read from the terminal (`cat`, `sed -n 'X,Yp'`, `head`, `grep … file`, `Get-Content`)

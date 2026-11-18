@@ -18,6 +18,8 @@ export interface Settings {
   showSidebar: boolean;
   /** The timeline (scrubber and replay controls) under the editor; shown on demand. */
   showTimeline: boolean;
+  /** The team grid (a tile per agent at work) in place of the editor (Ctrl+Shift+T). */
+  showTeam: boolean;
   /** Wrap long lines in the editor (Alt+Z, as in VS Code). */
   wordWrap: boolean;
   /** Look for a newer release on GitHub at start-up and once a day. */
@@ -38,6 +40,7 @@ const DEFAULTS: Settings = {
   showPanel: true,
   showSidebar: true,
   showTimeline: false,
+  showTeam: false,
   wordWrap: false,
   checkUpdates: true,
   skippedUpdate: "",

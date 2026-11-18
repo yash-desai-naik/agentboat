@@ -6,6 +6,8 @@ import { type Anim, setWatch, useDetail, useDetails, seek, useSession } from "..
 import type { Detail, Head, Hunk, Step } from "../lib/types";
 import { CodeEditor, type PresenceMark, type Typing } from "./CodeEditor";
 import { WatchBar, WatchMenu } from "../ui/WatchMenu";
+import { TeamGrid } from "./TeamGrid";
+import { settings } from "../lib/settings";
 import { useSettings } from "../lib/settings";
 import { Markdown } from "./Markdown";
 import { FileIcon } from "./FileIcon";
@@ -20,6 +22,7 @@ export function typingFor(anim: Anim | null, i: number): Typing | null {
 export function EditorArea({ ide, head, steps }: { ide: Ide; head: Head | null; steps: Step[] }) {
   const { anim } = useSession();
   const active = ide.tabs.find((t) => t.id === ide.activeTab) ?? null;
+  const { showTeam } = useSettings();
   // Dialogs and the palette belong to the watched one's screen: its question stays up while it
   // waits for you, a palette command shows while it's the step being viewed.
   const mine = ide.watchCurrent;
@@ -40,8 +43,22 @@ export function EditorArea({ ide, head, steps }: { ide: Ide; head: Head | null; 
         {/* Pinned at the right: only the tabs scroll. */}
         <PresenceStrip presence={ide.presence} head={head} />
         <WatchMenu head={head} steps={steps} cursor={ide.current?.i ?? -1} watch={ide.watch} />
+        {(head?.agents.length ?? 0) > 0 && (
+          <div className="team-toggle-wrap">
+            <button
+              className={`team-toggle${showTeam ? " on" : ""}`}
+              aria-pressed={showTeam}
+              onClick={() => settings.set({ showTeam: !showTeam })}
+              title="Team: every agent's screen at once (Ctrl+Shift+T)"
+            >
+              ⊞ Team
+            </button>
+          </div>
+        )}
       </div>
-      {active ? (
+      {showTeam && (head?.agents.length ?? 0) > 0 ? (
+        <TeamGrid head={head} steps={steps} cursor={ide.current?.i ?? -1} watch={ide.watch} />
+      ) : active ? (
         <TabBody key={active.id} tab={active} step={steps[active.step]} head={head} anim={anim} present={presentOn(active.path ? pathKey(active.path) : null)} />
       ) : (
         <EmptyEditor head={head} />
