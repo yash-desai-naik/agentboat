@@ -6,6 +6,11 @@ All notable changes to Ccboat are listed here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Links in Claude's replies and tool results copy as links (they pasted as plain text), and a
+  click opens them in your browser.
+
 ## [0.2.1] - 2026-11-17
 
 ### Added

@@ -1,13 +1,30 @@
+import { invoke } from "@tauri-apps/api/core";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { memo, useMemo } from "react";
 
-// Links are shown, never followed (the app is read-only and opens nothing); images aren't loaded.
+/** Web and mail links: the only ones kept (copied with the text, opened in the browser). */
+export function safeLink(href: string | null): string | null {
+  if (!href) return null;
+  try {
+    const u = new URL(href);
+    return u.protocol === "http:" || u.protocol === "https:" || u.protocol === "mailto:" ? u.href : null;
+  } catch {
+    return null;
+  }
+}
+
+// Links keep their address, so copying text copies working links; anything that isn't a web or
+// mail link loses it. A click never navigates Ccboat's own window: it opens the link in the
+// default browser (see `openLinksInBrowser`). Images aren't loaded.
 DOMPurify.addHook("afterSanitizeAttributes", (node) => {
   if (node.tagName === "A") {
-    const href = node.getAttribute("href");
-    if (href) node.setAttribute("title", href);
-    node.removeAttribute("href");
+    const href = safeLink(node.getAttribute("href"));
+    if (href) {
+      node.setAttribute("href", href);
+      node.setAttribute("title", href);
+      node.setAttribute("rel", "noopener noreferrer");
+    } else node.removeAttribute("href");
     node.removeAttribute("target");
   }
   if (node.tagName === "IMG") {
@@ -16,7 +33,26 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
   }
 });
 
-const FORBID_TAGS = ["style", "iframe", "object", "embed", "form", "input", "button", "textarea", "select", "link", "meta", "base", "script"];
+/**
+ * Every link click in the page opens the link in the default browser instead of navigating the
+ * app's window (which would leave Ccboat). Rust checks the address again (web and mail only).
+ */
+export function openLinksInBrowser() {
+  document.addEventListener(
+    "click",
+    (e) => {
+      const a = (e.target as Element | null)?.closest?.("a[href]");
+      if (!a) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const href = safeLink(a.getAttribute("href"));
+      if (href) void invoke("open_url", { url: href }).catch(() => {});
+    },
+    true,
+  );
+}
+
+const FORBID_TAGS =["style", "iframe", "object", "embed", "form", "input", "button", "textarea", "select", "link", "meta", "base", "script"];
 
 const cache = new Map<string, string>();
 

@@ -67,6 +67,17 @@ pub fn open_releases_page() -> Result<(), String> {
     open_with_desktop(format!("{REPO_URL}/releases").as_ref())
 }
 
+/// A link clicked in a reply or a tool result, in the default browser: web and mail links only,
+/// never a program or a file.
+#[tauri::command]
+pub fn open_url(url: String) -> Result<(), String> {
+    let parsed = url::Url::parse(&url).map_err(|_| "That isn't a link.".to_string())?;
+    if !matches!(parsed.scheme(), "http" | "https" | "mailto") {
+        return Err("Only web and mail links open.".into());
+    }
+    open_with_desktop(parsed.as_str().as_ref())
+}
+
 /// Ccboat's GitHub page, in the default browser.
 #[tauri::command]
 pub fn open_repo_page() -> Result<(), String> {

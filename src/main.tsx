@@ -5,6 +5,7 @@ import { openSession, startUpdates } from "./lib/store";
 import { appWindow, IN_TAURI } from "./lib/tauri";
 import { startMotion } from "./lib/motion";
 import { startUpdateChecks } from "./lib/update";
+import { openLinksInBrowser } from "./ide/Markdown";
 import "./styles.css";
 import "./ide.css";
 import "./panels.css";
@@ -19,6 +20,7 @@ dark.addEventListener("change", applyTheme);
 startUpdates();
 startMotion();
 startUpdateChecks();
+openLinksInBrowser();
 createRoot(document.getElementById("root")!).render(<App />);
 
 // Reopen the session watched last, if its transcript is still there.

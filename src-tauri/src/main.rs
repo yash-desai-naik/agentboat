@@ -38,6 +38,7 @@ fn main() {
             desktop::open_app_folder,
             desktop::open_releases_page,
             desktop::open_repo_page,
+            desktop::open_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Ccboat");
