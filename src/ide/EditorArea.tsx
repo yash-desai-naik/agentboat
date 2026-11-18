@@ -5,6 +5,7 @@ import { baseName, pathKey, relativeTo } from "../lib/format";
 import { type Anim, setWatch, useDetail, useDetails, seek, useSession } from "../lib/store";
 import type { Detail, Head, Hunk, Step } from "../lib/types";
 import { CodeEditor, type PresenceMark, type Typing } from "./CodeEditor";
+import { WatchBar, WatchMenu } from "../ui/WatchMenu";
 import { useSettings } from "../lib/settings";
 import { Markdown } from "./Markdown";
 import { FileIcon } from "./FileIcon";
@@ -25,15 +26,20 @@ export function EditorArea({ ide, head, steps }: { ide: Ide; head: Head | null; 
   const onIt = !!mine && mine.i === ide.current?.i;
   const presentOn = (key: string | null) => (key ? ide.presence.filter((p) => p.file?.key === key) : []);
   return (
-    <section className="editor-area">
+    <section className={`editor-area${ide.watch ? " watching" : ""}`} style={{ ["--hue" as string]: agentHue(ide.watch) }}>
+      <WatchBar head={head} steps={steps} cursor={ide.current?.i ?? -1} watch={ide.watch} />
       {mine && mine.kind === "tool" && mine.cat === "ask" && (onIt || mine.state === "run") && <AskDialog step={mine} head={head} />}
       {mine && onIt && isPaletteStep(mine) && <PaletteBar step={mine} />}
+      <div className="tabbar">
       <div className="tabstrip" role="tablist">
         {ide.tabs.map((t) => (
           <TabButton key={t.id} tab={t} active={t.id === ide.activeTab} step={steps[t.step]} present={presentOn(t.path ? pathKey(t.path) : null)} head={head} />
         ))}
         <div className="tabstrip-fill" />
+      </div>
+        {/* Pinned at the right: only the tabs scroll. */}
         <PresenceStrip presence={ide.presence} head={head} />
+        <WatchMenu head={head} steps={steps} cursor={ide.current?.i ?? -1} watch={ide.watch} />
       </div>
       {active ? (
         <TabBody key={active.id} tab={active} step={steps[active.step]} head={head} anim={anim} present={presentOn(active.path ? pathKey(active.path) : null)} />
@@ -139,7 +145,8 @@ function TabBody({ tab, step, head, anim, present }: { tab: Tab; step: Step | un
   if (tab.kind === "browser") return <BrowserView step={step} detail={detail} />;
   const cwd = head?.meta.cwd ?? null;
   const fromShell = step.cat === "shell" || step.cat === "git";
-  const verb = fromShell ? "Written from the terminal" : step.cat === "read" ? "Read" : step.cat === "write" ? (step.created ? "Created" : "Wrote") : "Edited";
+  const shellRead = fromShell && step.files?.some((f) => f.op === "read" && tab.path && pathKey(f.path) === pathKey(tab.path));
+  const verb = fromShell ? (shellRead ? "Read from the terminal" : "Written from the terminal") : step.cat === "read" ? "Read" : step.cat === "write" ? (step.created ? "Created" : "Wrote") : "Edited";
   const extra = (
     <span className={`crumb-step ${step.state}`}>
       {step.agent > 0 && (
@@ -218,9 +225,14 @@ function FileContent({
 function fileView(step: Step, d: Detail | null | undefined, path: string): { doc: string; original: string | null; start: number } | null {
   if (!d) return null;
   if (d.kind === "shell") {
-    // A file written from the terminal: the heredoc's (or echo's) text, typed in like a new file.
     const key = pathKey(path);
     const f = d.files?.find((x) => pathKey(x.path) === key);
+    // Read from the terminal by a command that only printed it: its output is the file's text.
+    if (f?.op === "read" && f.exact) {
+      const out = (d.stdout ?? d.output ?? "").replace(/\r\n/g, "\n");
+      return { doc: out, original: null, start: f.line ?? 1 };
+    }
+    // A file written from the terminal: the heredoc's (or echo's) text, typed in like a new file.
     if (f?.content == null) return null;
     return { doc: f.content, original: "", start: 1 };
   }

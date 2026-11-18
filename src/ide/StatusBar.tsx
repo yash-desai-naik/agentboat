@@ -1,6 +1,7 @@
 import type { Ide } from "../lib/derive";
 import { duration, shortTool, tokens } from "../lib/format";
-import { useSession } from "../lib/store";
+import { setWatch, useSession } from "../lib/store";
+import { agentName } from "../lib/derive";
 import type { Head } from "../lib/types";
 import { Branch } from "../ui/Icons";
 import { useNow } from "../lib/clock";
@@ -34,7 +35,7 @@ function permissionLabel(m: string | null): string | null {
 }
 
 export function StatusBar({ ide, head }: { ide: Ide; head: Head | null }) {
-  const { follow, playing, cursor, steps } = useSession();
+  const { follow, playing, cursor, steps, watch } = useSession();
   const { showTimeline } = useSettings();
   const now = useNow();
   const status = head?.status ?? "ended";
@@ -82,6 +83,11 @@ export function StatusBar({ ide, head }: { ide: Ide; head: Head | null }) {
           {follow && atEnd ? ` · ${duration(now - running.ts)}` : ""}
           {ide.running.length > 1 ? ` (+${ide.running.length - 1})` : ""}
         </span>
+      )}
+      {watch > 0 && (
+        <button className="sb-where" onClick={() => setWatch(0)} title="Back to Claude's screen (Esc)">
+          👁 {agentName(head, watch)}
+        </button>
       )}
       <span className="sb-fill" />
       {mode && <span className="sb-item" title="Permission mode">{mode}</span>}

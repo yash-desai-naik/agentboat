@@ -26,6 +26,10 @@ pub struct FileOp {
     /// For a read, the first line it looks at, when the command says (`sed -n '86,480p'` → 86).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub line: Option<u32>,
+    /// A read that is the whole command (`sed -n`, `cat`, `head`, `Get-Content`, perhaps after a
+    /// `cd`): what it printed is the file's text from `line`, so the file can be shown.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub exact: bool,
 }
 
 /// The file operations in a command run with working folder `cwd`.
@@ -36,8 +40,14 @@ pub fn parse(command: &str, cwd: &str) -> Vec<FileOp> {
     let mut cwd = normalize(cwd);
     let mut heredoc = 0usize;
     let mut seg: Vec<&str> = Vec::new();
+    // The commands run (not counting `cd`), to tell a command that only reads a file.
+    let mut commands: Vec<String> = Vec::new();
     let mut flush = |seg: &mut Vec<&str>, cwd: &mut String, heredoc: &mut usize| {
         if !seg.is_empty() {
+            let first = seg.iter().find(|w| !is_assignment(w)).map(|w| w.to_ascii_lowercase()).unwrap_or_default();
+            if !matches!(first.as_str(), "cd" | "pushd" | "set-location") {
+                commands.push(first);
+            }
             segment(seg, cwd, &bodies, heredoc, &mut out);
             seg.clear();
         }
@@ -77,6 +87,13 @@ pub fn parse(command: &str, cwd: &str) -> Vec<FileOp> {
     }
     for m in &mut merged {
         m.has_content = m.content.is_some();
+    }
+    if merged.len() == 1
+        && merged[0].op == "read"
+        && commands.len() == 1
+        && matches!(commands[0].as_str(), "sed" | "cat" | "head" | "get-content" | "gc" | "type" | "nl")
+    {
+        merged[0].exact = true;
     }
     merged
 }
@@ -131,6 +148,7 @@ fn segment(seg: &[&str], cwd: &mut String, bodies: &[String], heredoc: &mut usiz
                 content,
                 has_content: false,
                 line: None,
+                exact: false,
             });
         }
         k += 2;
@@ -145,7 +163,7 @@ fn segment(seg: &[&str], cwd: &mut String, bodies: &[String], heredoc: &mut usiz
     let flags: Vec<&str> = args[1..].iter().copied().filter(|a| a.starts_with('-')).collect();
     let mut push = |p: &str, op: &'static str, content: Option<String>| {
         if let Some(path) = resolve(p, cwd) {
-            out.push(FileOp { path, op, content, has_content: false, line: None });
+            out.push(FileOp { path, op, content, has_content: false, line: None, exact: false });
         }
     };
     // A command that looks at a file (only names that are files: with an extension).
@@ -154,7 +172,7 @@ fn segment(seg: &[&str], cwd: &mut String, bodies: &[String], heredoc: &mut usiz
             return;
         }
         if let Some(path) = resolve(p, cwd) {
-            out.push(FileOp { path, op: "read", content: None, has_content: false, line });
+            out.push(FileOp { path, op: "read", content: None, has_content: false, line, exact: false });
         }
     };
 
@@ -493,6 +511,10 @@ mod tests {
                 ("/proj/d.rs".to_string(), "read", Some(1)),
             ]
         );
+        // Only a command that is just the read shows the file.
+        assert!(parse("cd /proj && sed -n '86,480p' src/a.ts", "/w")[0].exact);
+        assert!(!parse("sed -n '86,90p' a.ts && grep x b.ts", "/w").iter().any(|o| o.exact));
+        assert!(!parse("grep -n x a.ts", "/w")[0].exact);
         // A read never hides a change to the same file.
         let got = parse("cat a.ts; sed -i 's/x/y/' a.ts; cat a.ts", "/proj");
         assert_eq!(got.len(), 1);

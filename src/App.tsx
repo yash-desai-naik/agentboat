@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { derive, type Focus } from "./lib/derive";
-import { goLive, getSession, setPlaying, stepBy, turnBy, useSession } from "./lib/store";
+import { goLive, getSession, setPlaying, setWatch, stepBy, turnBy, useSession } from "./lib/store";
 import { settings, useSettings } from "./lib/settings";
 import { TitleBar } from "./ui/TitleBar";
 import { SessionPicker, Welcome } from "./ui/SessionPicker";
@@ -71,6 +71,11 @@ export function App() {
       if (ctrl && e.key.toLowerCase() === "t") return void (e.preventDefault(), settings.set({ showTimeline: !settings.get().showTimeline }));
       if (ctrl && e.key.toLowerCase() === "l") return void (e.preventDefault(), settings.set({ showChat: !settings.get().showChat }));
       if (getSession().phase !== "ready") return;
+      if (e.key === "Escape" && getSession().watch > 0 && !document.querySelector(".picker-backdrop, .dialog-backdrop, .app-menu")) {
+        e.preventDefault();
+        setWatch(0);
+        return;
+      }
       if (e.key === "ArrowLeft") {
         e.preventDefault();
         if (e.shiftKey) turnBy(-1);

@@ -12,6 +12,12 @@ All notable changes to Ccboat are listed here. The format follows
   appear like teammates in a shared workspace instead of pulling the editor to their files: a
   numbered, coloured avatar each on the tab bar (hover for what it's doing), dots on the tabs and
   Explorer files they're on, and their name on the line they're reading or changing.
+- **Follow an agent:** pick any agent (the **Watching** menu on the tab bar, its avatar, or its
+  card in Subagents) and the IDE becomes its screen: its tabs, its terminal, its steps in the
+  Claude panel, with the others (Claude included) as collaborators. A coloured bar says whose screen
+  it is; **Back to Claude** or Esc returns.
+- A file an agent reads with only a terminal command (`sed -n 'X,Yp' file`, `cat`, `head`) opens in
+  its editor at those lines, labelled *Read from the terminal*.
 - Files read from the terminal (`cat`, `sed -n 'X,Yp'`, `head`, `grep … file`, `Get-Content`)
   show as read in Explorer, with the line the command starts at.
 

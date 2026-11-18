@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { FileMark, Ide } from "../lib/derive";
 import { agentHue, agentName, agentProgress } from "../lib/derive";
 import { baseName, clock, pathKey, relativeTo } from "../lib/format";
-import { seek, useDetail } from "../lib/store";
+import { seek, setWatch, useDetail } from "../lib/store";
 import type { Head, Step } from "../lib/types";
 import { Agents, ArrowDown, ArrowUp, Branch, Checklist, Chevron, Commit, Files, Folder, Search } from "../ui/Icons";
 import { FileIcon } from "./FileIcon";
@@ -392,7 +392,13 @@ function AgentsView({ ide, head, steps }: { ide: Ide; head: Head | null; steps: 
           const { count, last } = p;
           const running = p.state === "running" || p.state === "starting";
           return (
-            <button key={a.id} className="agent-card" onClick={() => last && seek(last.i)} style={{ ["--hue" as string]: agentHue(n) }}>
+            <button
+              key={a.id}
+              className={`agent-card${ide.watch === n ? " watched" : ""}`}
+              onClick={() => setWatch(ide.watch === n ? 0 : n)}
+              title={ide.watch === n ? "Back to Claude's screen" : "Watch this agent's screen"}
+              style={{ ["--hue" as string]: agentHue(n) }}
+            >
               <div className="agent-card-head">
                 <span className="agent-pip" />
                 <span className="agent-card-name ellipsis">{agentName(head, n)}</span>

@@ -728,3 +728,151 @@
   vertical-align: 1px;
   white-space: nowrap;
 }
+
+/* ---------- following an agent ---------- */
+
+.watch-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 8px 0 2px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+.watch-btn {
+  --hue: 200;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 200px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+}
+.watch-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.watch-btn.on {
+  border-color: hsl(var(--hue) 55% 55%);
+  background: hsl(var(--hue) 50% 50% / 0.16);
+  color: var(--text);
+}
+.watch-list {
+  position: absolute;
+  top: 32px;
+  right: 8px;
+  z-index: 40;
+  width: 300px;
+  max-height: 420px;
+  overflow: auto;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: var(--shadow-pop);
+}
+.watch-list button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  text-align: left;
+  font-size: var(--fs-sm);
+}
+.watch-list button:hover {
+  background: var(--bg-hover);
+}
+.watch-list button.current {
+  background: var(--selection);
+}
+.watch-list .ellipsis {
+  flex: 1;
+}
+.watch-state {
+  flex: none;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.presence-dot.small {
+  width: 18px;
+  height: 18px;
+  font-size: 8.5px;
+  box-shadow: none;
+  flex: none;
+}
+.watch-bar {
+  --hue: 200;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  flex: none;
+  padding: 0 8px 0 12px;
+  background: hsl(var(--hue) 50% 45%);
+  color: #fff;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.watch-bar .dim {
+  color: rgba(255, 255, 255, 0.78);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.watch-fill {
+  flex: 1;
+}
+.watch-back {
+  height: 20px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+.watch-back:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+.editor-area.watching {
+  box-shadow: inset 0 0 0 2px hsl(var(--hue) 50% 45%);
+}
+.agent-card.watched {
+  border-color: hsl(var(--hue) 55% 55%);
+  background: hsl(var(--hue) 50% 50% / 0.12);
+}
+.seg-solo {
+  height: 22px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+}
+.seg-solo:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+/* The tab bar: tabs scroll, presence and the watch menu stay at the right. */
+.tabbar {
+  display: flex;
+  height: 36px;
+  flex: none;
+  background: var(--bg-chrome);
+  min-width: 0;
+}
+.tabbar .tabstrip {
+  flex: 1;
+  min-width: 0;
+}

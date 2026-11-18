@@ -542,6 +542,7 @@ impl Timeline {
                         "op": f.op,
                         "content": f.content.as_deref().map(cap_file),
                         "line": f.line,
+                        "exact": f.exact,
                     })).collect::<Vec<_>>(),
                 })
             }

@@ -193,6 +193,12 @@ export function derive(steps: Step[], cursor: number, head: Head | null, watch =
                 files.set(key, { key, path: f.path, rel: relativeTo(f.path, cwd), status: "R", last: i, changes: 0, viaShell: true });
               }
               onFile.set(s.agent, { key, path: f.path, step: i, ref: s });
+              // A command that only read it (sed -n, cat, head): the file opens at those lines,
+              // as on the screen of someone reading it.
+              if (f.exact && s.state === "ok") {
+                openTab({ id: "f:" + key, kind: "file", title: baseName(f.path), path: f.path, step: i, agent: s.agent });
+                if (mine) focus = "editor";
+              }
               continue;
             }
             if (f.op === "delete" && prev?.status === "A") {

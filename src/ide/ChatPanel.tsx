@@ -1,7 +1,7 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { agentHue, agentName, agentProgress, type AgentProgress } from "../lib/derive";
 import { clock, duration, shortTool } from "../lib/format";
-import { type Anim, seek, useSession } from "../lib/store";
+import { type Anim, seek, setWatch, useSession } from "../lib/store";
 import { settings, useSettings } from "../lib/settings";
 import type { Head, Step } from "../lib/types";
 import { Chat, StepIcon } from "../ui/Icons";
@@ -10,7 +10,7 @@ import { frameDue } from "../lib/motion";
 
 /** The conversation as it stood at the cursor: your prompts, Claude's replies, and each tool call. */
 export function ChatPanel({ head, steps, cursor }: { head: Head | null; steps: Step[]; cursor: number }) {
-  const { anim } = useSession();
+  const { anim, watch } = useSession();
   const { chatScope } = useSettings();
   const [limit, setLimit] = useState(250);
   const box = useRef<HTMLDivElement>(null);
@@ -18,7 +18,7 @@ export function ChatPanel({ head, steps, cursor }: { head: Head | null; steps: S
   const shown: Step[] = [];
   for (let i = Math.min(cursor, steps.length - 1); i >= 0 && shown.length < limit; i--) {
     const s = steps[i];
-    if (chatScope === "main" && s.agent !== 0) continue;
+    if (watch > 0 ? s.agent !== watch : chatScope === "main" && s.agent !== 0) continue;
     shown.push(s);
   }
   shown.reverse();
@@ -52,9 +52,14 @@ export function ChatPanel({ head, steps, cursor }: { head: Head | null; steps: S
     <aside className="chat">
       <div className="chat-head">
         <span className="panel-title">
-          <Chat size={14} /> Claude
+          <Chat size={14} /> {watch > 0 ? agentName(head, watch) : "Claude"}
         </span>
         <span className="chat-fill" />
+        {watch > 0 ? (
+          <button className="seg-solo" onClick={() => setWatch(0)} title="Back to the main session (Esc)">
+            ← Claude
+          </button>
+        ) : (
         <div className="seg" role="group" aria-label="Show">
           <button aria-pressed={chatScope === "main"} onClick={() => settings.set({ chatScope: "main" })} title="The main session only">
             Session
@@ -63,6 +68,7 @@ export function ChatPanel({ head, steps, cursor }: { head: Head | null; steps: S
             + Agents
           </button>
         </div>
+        )}
       </div>
       <div className="chat-list" ref={box}>
         {more && (
