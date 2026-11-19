@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <title>Learn by watching an agent work</title>
+  <rect x="22" y="70" width="156" height="110" rx="14" fill="#7457e6"/>
+  <path d="M22 84q0-14 14-14h128q14 0 14 14v8H22z" fill="#5f44cf"/>
+  <path d="M62 118l-16 16 16 16" fill="none" stroke="#6ee7a8" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M138 118l16 16-16 16" fill="none" stroke="#6ee7a8" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M110 112l-20 44" stroke="#fff" stroke-width="9" stroke-linecap="round"/>
+  <path d="M100 14l70 28-70 28-70-28z" fill="#ffd166"/>
+  <path d="M60 54v18q40 18 80 0V54l-40 16z" fill="#f2b84b"/>
+  <path d="M164 44v28" stroke="#ff8a7a" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="164" cy="76" r="7" fill="#ff8a7a"/>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <title>Every agent's screen at once</title>
+  <rect x="16" y="24" width="80" height="70" rx="10" fill="#7457e6"/><path d="M16 34q0-10 10-10h60q10 0 10 10v4H16z" fill="#5f44cf"/>
+  <rect x="104" y="24" width="80" height="70" rx="10" fill="#7457e6"/><path d="M104 34q0-10 10-10h60q10 0 10 10v4H104z" fill="#5f44cf"/>
+  <rect x="16" y="106" width="80" height="70" rx="10" fill="#7457e6"/><path d="M16 116q0-10 10-10h60q10 0 10 10v4H16z" fill="#5f44cf"/>
+  <rect x="104" y="106" width="80" height="70" rx="10" fill="#7457e6"/><path d="M104 116q0-10 10-10h60q10 0 10 10v4H104z" fill="#5f44cf"/>
+  <rect x="28" y="50" width="30" height="7" rx="3.5" fill="#fff"/><rect x="36" y="64" width="44" height="7" rx="3.5" fill="#6ee7a8"/><rect x="28" y="78" width="22" height="7" rx="3.5" fill="#ffd166"/>
+  <rect x="116" y="50" width="44" height="7" rx="3.5" fill="#d9d0ff"/><rect x="116" y="64" width="26" height="7" rx="3.5" fill="#ff8a7a"/><rect x="124" y="78" width="38" height="7" rx="3.5" fill="#fff"/>
+  <rect x="28" y="132" width="40" height="7" rx="3.5" fill="#ffd166"/><rect x="28" y="146" width="28" height="7" rx="3.5" fill="#fff"/><rect x="36" y="160" width="36" height="7" rx="3.5" fill="#6ee7a8"/>
+  <rect x="116" y="132" width="24" height="7" rx="3.5" fill="#fff"/><rect x="124" y="146" width="42" height="7" rx="3.5" fill="#d9d0ff"/><rect x="116" y="160" width="32" height="7" rx="3.5" fill="#6ee7a8"/>
+  <circle cx="100" cy="100" r="20" fill="#ffd166" stroke="#fff" stroke-width="5"/>
+  <circle cx="93" cy="98" r="3.5" fill="#34217f"/><circle cx="107" cy="98" r="3.5" fill="#34217f"/>
+  <path d="M93 107q7 5 14 0" fill="none" stroke="#34217f" stroke-width="3" stroke-linecap="round"/>
+</svg>

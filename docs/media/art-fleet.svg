@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <title>Many sessions, one window</title>
+  <g transform="rotate(-8 60 110)"><rect x="14" y="62" width="104" height="86" rx="12" fill="#a08cf8" opacity=".55"/></g>
+  <g transform="rotate(5 120 110)"><rect x="82" y="58" width="104" height="86" rx="12" fill="#a08cf8" opacity=".75"/></g>
+  <rect x="44" y="74" width="112" height="94" rx="12" fill="#7457e6"/>
+  <path d="M44 86q0-12 12-12h88q12 0 12 12v8H44z" fill="#5f44cf"/>
+  <circle cx="58" cy="84" r="4" fill="#ff8a7a"/><circle cx="70" cy="84" r="4" fill="#ffd166"/><circle cx="82" cy="84" r="4" fill="#6ee7a8"/>
+  <rect x="58" y="106" width="44" height="9" rx="4.5" fill="#fff"/><rect x="108" y="106" width="30" height="9" rx="4.5" fill="#d9d0ff"/>
+  <rect x="70" y="124" width="60" height="9" rx="4.5" fill="#6ee7a8"/>
+  <rect x="58" y="142" width="36" height="9" rx="4.5" fill="#fff"/>
+  <path d="M150 20c-15 0-24 11-24 25v13l-7 9h62l-7-9V45c0-14-9-25-24-25z" fill="#ffd166"/>
+  <circle cx="150" cy="73" r="7" fill="#ffd166"/>
+  <circle cx="174" cy="24" r="14" fill="#ff8a7a"/>
+  <text x="174" y="29.5" font-family="Segoe UI,Helvetica,Arial,sans-serif" font-size="16" font-weight="700" fill="#fff" text-anchor="middle">3</text>
+</svg>

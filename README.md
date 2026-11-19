@@ -1,59 +1,107 @@
-# AgentBoat
+<p align="center">
+  <img src="public/icon.svg" width="88" alt="AgentBoat logo">
+</p>
+
+<h1 align="center">AgentBoat</h1>
+
+<p align="center">
+  <b>Your Claude Code sessions, as an IDE you can watch. Live, or in flashback.</b><br>
+  Read-only · local · free and open source · Windows (macOS soon)<br>
+  <a href="https://github.com/yash-desai-naik/agentboat/releases/latest"><b>Download</b></a> ·
+  <a href="#what-you-see">Features</a> ·
+  <a href="#coming-from-ccboat">Coming from Ccboat?</a>
+</p>
 
 > **Formerly Ccboat.** Same app, new name, from version 0.6.0. Using Ccboat? It updates itself to
-> AgentBoat and brings your settings along: see [Coming from Ccboat](#coming-from-ccboat).
+> AgentBoat and brings your settings along.
 
-### Your Claude Code sessions, as an IDE you can watch, live or in flashback.
+![AgentBoat replaying a Claude Code session: a diff in the editor, the test run in the terminal, the Claude panel and the usage meters](docs/media/shot-hero.png)
 
-You've got eight Claude Code terminals open, three of them are waiting on you, one just pushed to
-`main`, and you have no idea which one burned through your 5-hour limit. AgentBoat is the screen
-you glance at.
+Eight Claude Code terminals open, three waiting on you, one just pushed to `main`, and no idea
+which one burned your 5-hour limit? AgentBoat is the screen you glance at. Edits are **typed out in
+the editor**, commands run in the terminal, commits land in Source Control: follow Claude **live**,
+or **rewind and replay** any session. It only watches; it never touches your code.
 
-It turns each Claude Code session into a full IDE you can watch: files open in the editor and edits
-are **typed out in front of you**, commands run in a real-looking terminal, web pages Claude reads
-open in a browser tab, MCP calls line up like DevTools' Network panel, and commits and pushes land
-in Source Control. Follow it **live** as Claude works, or **rewind and replay** any session step by
-step afterwards. And it's **read-only**: it watches, it never touches your code.
+<sub>Screenshots: real AgentBoat, watching real Claude Code sessions on a small demo project.</sub>
 
-## Built for vibe coders running a fleet
+## Made for vibe coders running a fleet
 
-**Dozens of sessions, one window.** Running sessions are listed first. The **Needs you** bell
-collects every session that's waiting on you, from all of them at once. Turn on **Answer prompts in
-AgentBoat** and you approve permissions, answer Claude's questions and sign off on plans right
-there, without hunting for the right terminal. The taskbar flashes when something new needs you.
-**Open in Claude Code** jumps to that session's terminal, or resumes a finished one.
+<table>
+<tr>
+<td width="84"><img src="docs/media/art-fleet.svg" width="76" alt=""></td>
+<td><b>Dozens of sessions, one window.</b> The <b>Needs you</b> bell gathers every session that's
+waiting on you. Approve a command, answer Claude's question or sign off on a plan right there, with
+no terminal hunting.</td>
+</tr>
+</table>
 
-**Tokenmaxing, with the meter in view.** The status bar shows how full the context window is, the
-model and its reasoning effort, and (with **Show usage limits** on) your 5-hour and weekly usage
-with when each resets. You see the wall coming before you hit it.
+<p align="center"><img src="docs/media/shot-fleet.png" width="400" alt="Needs you: a permission, a question and a plan from three sessions"></p>
 
-**Flashback: what did Claude do while you were away?** Every session is a timeline. Scrub it, step
-through it, jump prompt to prompt (Shift + ← / →), or hit Space and watch it replay from 0.1× to 16×
-with the session's real pauses. Came back from lunch to 40 changed files? Watch how they got there.
+<table>
+<tr>
+<td width="84"><img src="docs/media/art-tokens.svg" width="76" alt=""></td>
+<td><b>Tokenmaxing, meter in view.</b> Context used, your 5-hour and weekly limits with their reset
+times, the model and its effort. See the wall before you hit it.</td>
+</tr>
+</table>
 
-**Team view for agent swarms.** Subagents get their own terminals and their own marks on the
-timeline. Ctrl+Shift+T shows every agent's screen at once.
+![The status bar: context 23%, 5-hour limit 72%, weekly limit 41%, model and effort](docs/media/shot-tokens.png)
 
-**Review before you trust.** Every edit is an inline diff, the Explorer marks each file Read,
-Modified, Added or Deleted (even ones written from the shell with `sed -i` or a heredoc), and Source
-Control lists the commits, pushes and branches, plus the commits not pushed yet.
+<table>
+<tr>
+<td width="84"><img src="docs/media/art-flashback.svg" width="76" alt=""></td>
+<td><b>Flashback.</b> Back from lunch to 40 changed files? Scrub the timeline, jump prompt to prompt,
+or press Space and replay it at 0.1× to 16× with the session's real pauses.</td>
+</tr>
+</table>
+
+![The timeline under the terminal: every step as a mark, subagents underneath](docs/media/shot-flashback.png)
+
+<table>
+<tr>
+<td width="84"><img src="docs/media/art-team.svg" width="76" alt=""></td>
+<td><b>Team view for agent swarms.</b> Ctrl+Shift+T puts Claude and every subagent on screen at
+once, each with the file it's editing.</td>
+</tr>
+</table>
+
+<p align="center"><img src="docs/media/shot-team.png" width="620" alt="Team view: Claude and three subagents working in parallel"></p>
+
+<table>
+<tr>
+<td width="84"><img src="docs/media/art-review.svg" width="76" alt=""></td>
+<td><b>Review before you trust.</b> Every edit as an inline diff, every touched file marked in the
+Explorer, every commit and push in Source Control.</td>
+</tr>
+</table>
+
+<p align="center"><img src="docs/media/shot-review.png" width="720" alt="Source Control with the pushed commit, the diff, and the push in the terminal"></p>
 
 ## Learn to code by watching an agent work
 
-New to coding, or new to a codebase? Replay a session at slow speed and watch how a capable agent
-actually works: which files it reads first and the exact lines it looks at, what it greps for, how
-it plans with a task list, which commands it runs, how it reads a failing test (failures show as red
-marks on the timeline) and what it changes to fix it. It's pair programming you can pause, rewind
-and replay as many times as you like.
+<table>
+<tr>
+<td width="84"><img src="docs/media/art-learn.svg" width="76" alt=""></td>
+<td>New to coding, or to a codebase? Replay a session slowly and see how a capable agent works: what
+it reads first, how it reads a failing test, and the one-character fix that turns it green.
+Pair programming you can pause and rewind.</td>
+</tr>
+</table>
+
+![The failing test in the terminal, and Claude's fix as a diff: the loop started at 1 instead of 0](docs/media/shot-learn.png)
 
 ## Light, local, private
 
-- **Read-only.** It reads Claude Code's transcripts in `~/.claude` and never changes your code.
-- **Local.** Nothing leaves your machine; the only network call is checking GitHub for updates.
-- **Light.** About 200 MB of memory and a few percent of one core while following a live session,
-  built with [Tauri 2](https://tauri.app) (Rust and your system's WebView): no Electron, no Node.js
-  at runtime. A sibling of [Fileboat](https://github.com/yash-desai-naik/fileboat) and
-  [Tableboat](https://github.com/yash-desai-naik/tableboat).
+<table>
+<tr>
+<td width="84"><img src="docs/media/art-light.svg" width="76" alt=""></td>
+<td><b>Read-only</b>: it reads Claude Code's transcripts in <code>~/.claude</code>.
+<b>Local</b>: the only network call is the update check. <b>Light</b>: about 200 MB of memory,
+built with <a href="https://tauri.app">Tauri 2</a>, no Electron. A sibling of
+<a href="https://github.com/yash-desai-naik/fileboat">Fileboat</a> and
+<a href="https://github.com/yash-desai-naik/tableboat">Tableboat</a>.</td>
+</tr>
+</table>
 
 ## Download
 

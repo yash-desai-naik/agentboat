@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <title>Replay any session</title>
+  <path d="M60 46a64 64 0 1 1-20 66" fill="none" stroke="#a08cf8" stroke-width="14" stroke-linecap="round"/>
+  <path d="M30 28l40 10-26 30z" fill="#a08cf8"/>
+  <circle cx="100" cy="92" r="40" fill="#7457e6"/>
+  <path d="M90 72l30 20-30 20z" fill="#fff"/>
+  <rect x="22" y="170" width="156" height="6" rx="3" fill="#d9d0ff"/>
+  <rect x="34" y="160" width="7" height="22" rx="3.5" fill="#7457e6"/>
+  <rect x="56" y="164" width="7" height="14" rx="3.5" fill="#6aa8ec"/>
+  <rect x="74" y="164" width="7" height="14" rx="3.5" fill="#6ee7a8"/>
+  <rect x="92" y="164" width="7" height="14" rx="3.5" fill="#ffd166"/>
+  <rect x="110" y="160" width="7" height="22" rx="3.5" fill="#7457e6"/>
+  <rect x="128" y="164" width="7" height="14" rx="3.5" fill="#ff8a7a"/>
+  <rect x="146" y="164" width="7" height="14" rx="3.5" fill="#6ee7a8"/>
+  <circle cx="95.5" cy="173" r="10" fill="none" stroke="#4a33a8" stroke-width="4"/>
+</svg>
