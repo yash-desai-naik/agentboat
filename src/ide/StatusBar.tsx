@@ -6,6 +6,7 @@ import type { Head } from "../lib/types";
 import { Branch } from "../ui/Icons";
 import { useNow } from "../lib/clock";
 import { settings, useSettings } from "../lib/settings";
+import { contextWindow, resetTime, useLimitsInstalled, useUsage, type Cap, type Usage } from "../lib/usage";
 
 const STATUS_TEXT: Record<string, string> = {
   working: "Working",
@@ -34,7 +35,10 @@ function permissionLabel(m: string | null): string | null {
   }
 }
 
-export function StatusBar({ ide, head }: { ide: Ide; head: Head | null }) {
+export function StatusBar({ ide, head, onLimits }: { ide: Ide; head: Head | null; onLimits: () => void }) {
+  const usage = useUsage(head?.id ?? null);
+  const limitsOn = useLimitsInstalled();
+  const effort = head?.meta.effort ?? usage?.effort ?? null;
   const { follow, playing, cursor, steps, watch } = useSession();
   const { showTimeline } = useSettings();
   const now = useNow();
@@ -91,12 +95,78 @@ export function StatusBar({ ide, head }: { ide: Ide; head: Head | null }) {
       )}
       <span className="sb-fill" />
       {mode && <span className="sb-item" title="Permission mode">{mode}</span>}
-      {head && head.meta.contextTokens > 0 && <span className="sb-item" title="Context in use at the last request">ctx {tokens(head.meta.contextTokens)}</span>}
+      {head && head.meta.contextTokens > 0 && <ContextMeter used={head.meta.contextTokens} model={head.meta.model} usage={usage} />}
+      <Limits usage={usage} on={limitsOn} now={now} onSetup={onLimits} />
       {head?.meta.model && (
         <span className="sb-item" title={head.meta.version ? `Claude Code ${head.meta.version}` : undefined}>
           {head.meta.model.replace(/^claude-/, "")}
+          {effort && <span className="sb-effort" title="Reasoning effort of the last reply"> · {effort}</span>}
         </span>
       )}
     </footer>
+  );
+}
+
+const hot = (pct: number) => (pct >= 80 ? " hot" : "");
+
+function Meter({ pct }: { pct: number }) {
+  return (
+    <span className={`sb-meter${hot(pct)}`} aria-hidden="true">
+      <span style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
+    </span>
+  );
+}
+
+/** Context in use at the last request, as a share of the window, with a bar. */
+function ContextMeter({ used, model, usage }: { used: number; model: string | null; usage: Usage | null }) {
+  const { size, exact } = contextWindow(usage, model, used);
+  const pct = (100 * used) / size;
+  const note = exact ? "" : " (window size estimated: turn on Show usage limits for the exact one)";
+  return (
+    <span className={`sb-item sb-ctx${hot(pct)}`} title={`Context in use at the last request: ${tokens(used)} of ${exact ? "" : "about "}${tokens(size)} tokens${note}`}>
+      ctx <Meter pct={pct} /> {exact ? "" : "≈"}
+      {Math.round(pct)}%
+    </span>
+  );
+}
+
+/** The account's 5-hour and 7-day usage with when each resets; a way to turn them on when off. */
+function Limits({ usage, on, now, onSetup }: { usage: Usage | null; on: boolean | null; now: number; onSetup: () => void }) {
+  const caps: [string, string, Cap | null][] = [
+    ["5h", "5-hour limit", usage?.fiveHour ?? null],
+    ["7d", "Weekly limit", usage?.sevenDay ?? null],
+  ];
+  if (!caps.some(([, , c]) => c)) {
+    if (on)
+      return (
+        <span className="sb-item dim" title="Usage limits appear after the next reply in any session">
+          5h · 7d …
+        </span>
+      );
+    return (
+      <button className="sb-where sb-limits-off" onClick={onSetup} title="Show the 5-hour and weekly usage limits">
+        5h · 7d
+      </button>
+    );
+  }
+  const asOf = usage?.limitsAt ? ` (as of ${resetTime(usage.limitsAt)})` : "";
+  return (
+    <>
+      {caps.map(([key, name, c]) => {
+        if (!c) return null;
+        const reset = c.resetsAt ?? 0;
+        if (reset && reset <= now)
+          return (
+            <span key={key} className="sb-item dim" title={`${name}: reset at ${resetTime(reset)}; new figures come with the next reply`}>
+              {key} reset
+            </span>
+          );
+        return (
+          <span key={key} className={`sb-item sb-cap${hot(c.usedPct)}`} title={`${name}: ${Math.round(c.usedPct)}% used${reset ? `, resets ${resetTime(reset)}` : ""}${asOf}`}>
+            {key} <Meter pct={c.usedPct} /> {Math.round(c.usedPct)}%{reset ? <span className="sb-reset"> ⟳ {resetTime(reset)}</span> : null}
+          </span>
+        );
+      })}
+    </>
   );
 }

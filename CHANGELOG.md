@@ -6,6 +6,32 @@ All notable changes to Ccboat are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Needs you:** a bell in the title bar lists every running session that is waiting on you,
+  across all your sessions, not only the one open. With **Answer prompts in Ccboat** turned on
+  (**Ccboat ▾**), you answer them right there: allow or deny a tool (with a note for Claude, or
+  "always allow" the rule Claude Code suggests), answer Claude's questions, approve a plan or send
+  it back with feedback. The terminal keeps showing the same prompt; answer in either place. The
+  panel opens when something new needs you and the taskbar button flashes; Ccboat can also come to
+  the front.
+- Sessions waiting on you in their terminal, and sessions that just finished their turn, are listed
+  too, with a way to open them.
+- **Open in Claude Code** (title bar, and on each session in the session list): a running session's
+  terminal comes to the front; a finished one is resumed in a new terminal in its folder
+  (`claude --resume`).
+- **Usage limits in the status bar:** your 5-hour and weekly usage, each with a bar and when it
+  resets, with **Show usage limits** on (**Ccboat ▾**). Claude Code reports these only to its status
+  line, so Ccboat becomes the status line, keeps a copy, and runs yours as before; turning it off
+  puts yours back.
+
+### Changed
+
+- The status bar shows the context in use as a share of the window, with a bar, instead of a token
+  count (the count is in its tooltip). The window's size comes from Claude Code when usage limits
+  are on; otherwise it is estimated and marked ≈.
+- The status bar shows the reasoning effort beside the model (`opus-5-5 · high`).
+
 ## [0.3.0] - 2026-11-18
 
 ### Added

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { derive, type Focus } from "./lib/derive";
 import { goLive, getSession, setPlaying, setWatch, stepBy, turnBy, useSession } from "./lib/store";
 import { settings, useSettings } from "./lib/settings";
@@ -6,6 +6,8 @@ import { TitleBar } from "./ui/TitleBar";
 import { SessionPicker, Welcome } from "./ui/SessionPicker";
 import { AboutDialog } from "./ui/AboutDialog";
 import { UpdateNotice } from "./ui/UpdateNotice";
+import { HookDialog, NeedsYouPanel, useNeedsYouAlerts } from "./ui/NeedsYou";
+import { LimitsDialog } from "./ui/LimitsDialog";
 import { ActivityBar, Sidebar, type View } from "./ide/Sidebar";
 import { EditorArea } from "./ide/EditorArea";
 import { TerminalPanel } from "./ide/TerminalPanel";
@@ -30,6 +32,10 @@ export function App() {
   const s = useSettings();
   const [picking, setPicking] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [hookOpen, setHookOpen] = useState(false);
+  const [limitsOpen, setLimitsOpen] = useState(false);
+  const [needsYou, setNeedsYou] = useState(false);
+  useNeedsYouAlerts(useCallback(() => setNeedsYou(true), []));
   const [view, setView] = useState<View>("explorer");
   const ide = useMemo(() => derive(steps, cursor, head, session.watch), [steps, cursor, head, session.watch]);
 
@@ -72,7 +78,7 @@ export function App() {
       if (ctrl && !e.shiftKey && e.key.toLowerCase() === "t") return void (e.preventDefault(), settings.set({ showTimeline: !settings.get().showTimeline }));
       if (ctrl && e.key.toLowerCase() === "l") return void (e.preventDefault(), settings.set({ showChat: !settings.get().showChat }));
       if (getSession().phase !== "ready") return;
-      if (e.key === "Escape" && getSession().watch > 0 && !document.querySelector(".picker-backdrop, .dialog-backdrop, .app-menu")) {
+      if (e.key === "Escape" && getSession().watch > 0 && !document.querySelector(".picker-backdrop, .dialog-backdrop, .app-menu, .ny-panel")) {
         e.preventDefault();
         setWatch(0);
         return;
@@ -112,7 +118,14 @@ export function App() {
 
   return (
     <div className="app">
-      <TitleBar onPick={() => setPicking(true)} onAbout={() => setAboutOpen(true)} />
+      <TitleBar
+        onPick={() => setPicking(true)}
+        onAbout={() => setAboutOpen(true)}
+        onHook={() => setHookOpen(true)}
+        onLimits={() => setLimitsOpen(true)}
+        needsYou={needsYou}
+        onNeedsYou={() => setNeedsYou((v) => !v)}
+      />
       {!ready ? (
         <Welcome />
       ) : (
@@ -163,11 +176,14 @@ export function App() {
             </div>
           </main>
           {s.showTimeline && <TimelineBar />}
-          <StatusBar ide={ide} head={head} />
+          <StatusBar ide={ide} head={head} onLimits={() => setLimitsOpen(true)} />
         </>
       )}
       {picking && <SessionPicker onClose={() => setPicking(false)} />}
       {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
+      {needsYou && <NeedsYouPanel onClose={() => setNeedsYou(false)} />}
+      {hookOpen && <HookDialog onClose={() => setHookOpen(false)} />}
+      {limitsOpen && <LimitsDialog onClose={() => setLimitsOpen(false)} />}
       <UpdateNotice />
     </div>
   );

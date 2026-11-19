@@ -60,6 +60,21 @@ A macOS build will follow (it compiles, but hasn't been run on a Mac yet).
   is doing.
 - **Claude panel.** Your prompts, Claude's replies, and each tool call as a line (with time
   taken and lines changed). Click any line to jump there. *+ Agents* shows subagents' steps too.
+- **Needs you** (the bell in the title bar). Every running session that is waiting on you, from
+  any of your sessions. With **Answer prompts in Ccboat** on (**Ccboat ▾**), its prompts are
+  answered right there: a tool's permission (Allow, Always allow the rule Claude Code offers, or
+  Deny with what to do instead), Claude's questions (pick options or type your own answer), a plan
+  (Approve, or Keep planning with feedback). The terminal shows the same prompt; whichever you
+  answer first counts. Sessions waiting in their terminal and ones that just finished their turn
+  are listed too. The panel opens when something new needs you, and the taskbar button flashes.
+- **Open in Claude Code** (title bar, and on each session in the session list): a running
+  session's terminal window comes to the front; a finished one is resumed in a new terminal in its
+  folder (`claude --resume <id>`). A running session can't be sent a new prompt from outside, so
+  this is how you reply to one that finished its turn.
+- **Status bar.** The session's state, branch, permission mode, the context in use as a share of
+  the window (a bar and a percentage), and the model with its reasoning effort. With **Show usage
+  limits** on (**Ccboat ▾**), also your 5-hour and weekly usage, each with a bar and when it
+  resets.
 - **Timeline** (hidden until you want it: the timeline button in the title bar, or Ctrl+T; while
   it's hidden the status bar shows Replay or Step n of m when you're not watching the present, and
   the keys below still work).
@@ -126,8 +141,22 @@ Only from `~/.claude` (or `CLAUDE_CONFIG_DIR`), read-only:
 - `projects/<folder>/<sessionId>.jsonl`: the transcript, read as it grows;
 - `projects/<folder>/<sessionId>/subagents/agent-<id>.jsonl` and `.meta.json`: subagents.
 
-It never writes anywhere (except its own window settings in the WebView's storage). Its only use of
-the network is the update check: it asks GitHub for Ccboat's latest release at start-up and once a
+It never writes anywhere (except its own window settings in the WebView's storage), with one
+exception you turn on yourself: **Answer prompts in Ccboat** adds one hook to Claude Code's
+`settings.json`, and turning it off removes it (nothing else in the file changes; a copy of the file
+from before is kept as `settings.json.ccboat-backup`). It is an `http` `PermissionRequest` hook:
+Claude Code sends each prompt to Ccboat on `127.0.0.1:47821` and waits for your answer while the
+terminal shows the prompt too. Requests must carry a random token written into the hook, and
+requests from web pages are refused. When Ccboat isn't running, Claude Code asks in the terminal as
+usual.
+
+**Show usage limits** is the other one. Claude Code reports the 5-hour and weekly limits and the
+context window's size only to its status line, so Ccboat sets Claude Code's `statusLine` to run
+itself (`ccboat --statusline <folder>`): it saves what Claude Code sends in its own data folder, then
+runs the status line you had with the same input, so your terminal shows what it did before.
+Turning it off puts your `statusLine` back as it was.
+
+Its only use of the network is the update check: it asks GitHub for Ccboat's latest release at start-up and once a
 day (turn that off in **Ccboat ▾ → About Ccboat**), and downloads an update only when you choose
 **Install and restart**. Updates are signed, and each download is checked against the key built
 into the app before it runs.

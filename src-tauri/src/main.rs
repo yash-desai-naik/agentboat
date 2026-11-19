@@ -1,13 +1,24 @@
 // No console window in release builds.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod attention;
 mod desktop;
+mod terminal;
+mod usage;
 mod update;
 mod watch;
 
 use tauri::Manager;
 
 fn main() {
+    // Run as Claude Code's status line (see ccboat_core::statusline): save its input, run the
+    // status line it replaced, and exit. No window, no single-instance check.
+    let mut args = std::env::args_os().skip(1);
+    if args.next().is_some_and(|a| a == ccboat_core::statusline::FLAG) {
+        let dir = args.next().map(std::path::PathBuf::from).unwrap_or_default();
+        std::process::exit(ccboat_core::statusline::run(&dir));
+    }
+
     tauri::Builder::default()
         // One window is enough: a second launch shows the running one.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
@@ -21,8 +32,10 @@ fn main() {
         .manage(update::UpdateState::default())
         .manage(watch::Open::default())
         .manage(watch::Sessions::default())
+        .manage(attention::Attention::default())
         .setup(|app| {
             watch::start(app.handle().clone());
+            attention::start(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -39,6 +52,15 @@ fn main() {
             desktop::open_releases_page,
             desktop::open_repo_page,
             desktop::open_url,
+            terminal::open_in_claude_code,
+            attention::attention_list,
+            attention::attention_answer,
+            attention::attention_dismiss,
+            attention::hook_status,
+            attention::hook_set,
+            usage::usage,
+            usage::limits_status,
+            usage::limits_set,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Ccboat");

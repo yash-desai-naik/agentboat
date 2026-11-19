@@ -6,6 +6,7 @@ import { appWindow, IN_TAURI } from "./lib/tauri";
 import { startMotion } from "./lib/motion";
 import { startUpdateChecks } from "./lib/update";
 import { openLinksInBrowser } from "./ide/Markdown";
+import { startAttention } from "./lib/attention";
 import "./styles.css";
 import "./ide.css";
 import "./panels.css";
@@ -21,6 +22,7 @@ startUpdates();
 startMotion();
 startUpdateChecks();
 openLinksInBrowser();
+startAttention();
 createRoot(document.getElementById("root")!).render(<App />);
 
 // Reopen the session watched last, if its transcript is still there.

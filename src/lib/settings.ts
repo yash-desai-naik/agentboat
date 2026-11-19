@@ -26,6 +26,12 @@ export interface Settings {
   checkUpdates: boolean;
   /** A version you chose to skip: not announced again (a manual check still shows it). */
   skippedUpdate: string;
+  /** Needs you: open the panel when a session starts waiting on you. */
+  needsYouOpen: boolean;
+  /** ...and bring Ccboat to the front. */
+  needsYouFront: boolean;
+  /** List sessions that finish their turn, not only ones waiting on a prompt. */
+  needsYouDone: boolean;
 }
 
 const DEFAULTS: Settings = {
@@ -44,6 +50,9 @@ const DEFAULTS: Settings = {
   wordWrap: false,
   checkUpdates: true,
   skippedUpdate: "",
+  needsYouOpen: true,
+  needsYouFront: false,
+  needsYouDone: true,
 };
 
 const KEY = "ccb.settings";

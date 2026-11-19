@@ -147,6 +147,11 @@ export const Question = ({ size = 16, className }: P) =>
     <circle cx="8" cy="8" r="6" />
     <path d="M6.2 6.2a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.4M8 11.6v.1" />
   </>);
+export const Bell = ({ size = 16, className }: P) =>
+  svg(size, className, <>
+    <path d="M4 11.5V7.2a4 4 0 0 1 8 0v4.3l1.2 1.3H2.8Z" />
+    <path d="M6.6 14.2a1.5 1.5 0 0 0 2.8 0" />
+  </>);
 export const Bolt = ({ size = 16, className }: P) => svg(size, className, <path d="M9 1.5 3.5 9H8l-1 5.5L12.5 7H8Z" />);
 export const Stop = ({ size = 16, className }: P) =>
   svg(size, className, <>

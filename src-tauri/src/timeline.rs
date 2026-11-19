@@ -93,6 +93,8 @@ pub struct Meta {
     pub custom_title: Option<String>,
     pub branch: Option<String>,
     pub model: Option<String>,
+    /// The reasoning effort of the last reply (`low` … `max`), as Claude Code logs it.
+    pub effort: Option<String>,
     pub cwd: Option<String>,
     pub version: Option<String>,
     pub permission_mode: Option<String>,
@@ -176,6 +178,7 @@ struct Line<'a> {
     version: Option<String>,
     #[serde(rename = "permissionMode")]
     permission_mode: Option<String>,
+    effort: Option<String>,
     origin: Option<Origin>,
     #[serde(rename = "toolUseResult", borrow)]
     tool_use_result: Option<&'a RawValue>,
@@ -303,6 +306,11 @@ impl Timeline {
             let origin = l.origin.and_then(|o| o.kind);
             self.user(src, ts, msg, tur, origin.as_deref(), l.is_meta == Some(true));
         } else {
+            if src.agent == 0
+                && let Some(e) = l.effort.filter(|e| !e.is_empty())
+            {
+                self.meta.effort = Some(e);
+            }
             self.assistant(src, ts, msg, l.cwd);
         }
     }
@@ -1374,6 +1382,20 @@ mod tests {
             src,
             &line("user", "2026-11-17T10:00:02.000Z", &extra, &content.to_string()),
         );
+    }
+
+    #[test]
+    fn the_last_main_reply_gives_the_effort() {
+        let mut t = Timeline::default();
+        let mut main = SourceState::new(0, false);
+        let mut sub = SourceState::new(1, true);
+        prompt(&mut t, &mut main, "go");
+        let say = |effort: &str| line("assistant", "2026-11-17T10:00:01.000Z", &format!(r#","effort":"{effort}""#), r#"[{"type":"text","text":"ok"}]"#);
+        t.ingest(&mut main, &say("medium"));
+        t.ingest(&mut main, &say("high"));
+        // A subagent's own effort isn't the session's.
+        t.ingest(&mut sub, &say("low"));
+        assert_eq!(t.meta.effort.as_deref(), Some("high"));
     }
 
     #[test]

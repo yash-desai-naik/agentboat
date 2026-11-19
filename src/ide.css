@@ -1661,3 +1661,39 @@
   color: inherit;
   opacity: 0.75;
 }
+
+/* Context and usage limits: a small bar in the bar's own colour (it changes with the status). */
+.sb-meter {
+  display: inline-block;
+  position: relative;
+  width: 34px;
+  height: 6px;
+  margin: 0 3px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--sb-fg) 28%, transparent);
+  vertical-align: middle;
+  overflow: hidden;
+}
+.sb-meter > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 3px;
+  background: var(--sb-fg);
+}
+.sb-meter.hot > span {
+  background: #ff8a7a;
+}
+.statusbar.s-waiting .sb-meter.hot > span {
+  background: #b3261e;
+}
+.sb-ctx.hot,
+.sb-cap.hot {
+  font-weight: 700;
+}
+.sb-reset,
+.sb-effort {
+  opacity: 0.8;
+}
+.sb-limits-off {
+  opacity: 0.75;
+}

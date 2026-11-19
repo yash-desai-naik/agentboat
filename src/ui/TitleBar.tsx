@@ -4,9 +4,25 @@ import { checkForUpdates, useUpdate } from "../lib/update";
 import { appWindow, IS_MAC } from "../lib/tauri";
 import { useSession } from "../lib/store";
 import { settings, useSettings } from "../lib/settings";
-import { Chevron, PanelBottom, PanelLeft, PanelRight, Timeline } from "./Icons";
+import { Chevron, PanelBottom, PanelLeft, PanelRight, Terminal, Timeline } from "./Icons";
+import { NeedsYouButton } from "./NeedsYou";
+import { openInClaudeCode } from "../lib/attention";
 
-export function TitleBar({ onPick, onAbout }: { onPick: () => void; onAbout: () => void }) {
+export function TitleBar({
+  onPick,
+  onAbout,
+  onHook,
+  onLimits,
+  needsYou,
+  onNeedsYou,
+}: {
+  onPick: () => void;
+  onAbout: () => void;
+  onHook: () => void;
+  onLimits: () => void;
+  needsYou: boolean;
+  onNeedsYou: () => void;
+}) {
   const { head, phase } = useSession();
   const s = useSettings();
   const [maximized, setMaximized] = useState(false);
@@ -25,7 +41,7 @@ export function TitleBar({ onPick, onAbout }: { onPick: () => void; onAbout: () 
 
   return (
     <header className={IS_MAC ? "titlebar mac" : "titlebar"} data-tauri-drag-region>
-      <AppMenu onAbout={onAbout} />
+      <AppMenu onAbout={onAbout} onHook={onHook} onLimits={onLimits} />
       <div className="tb-fill" data-tauri-drag-region />
       <button className="session-switch" onClick={onPick} title="Open another session (Ctrl+O)">
         {head && <span className={`st-dot s-${head.status}`} />}
@@ -34,7 +50,9 @@ export function TitleBar({ onPick, onAbout }: { onPick: () => void; onAbout: () 
         <span className="ss-title">{title}</span>
         <Chevron size={11} open />
       </button>
+      {head && <OpenInClaudeCode id={head.id} cwd={head.meta.cwd} live={head.status !== "ended"} />}
       <div className="tb-fill" data-tauri-drag-region />
+      <NeedsYouButton open={needsYou} onToggle={onNeedsYou} />
       {head && (
         <div className="layout-toggles">
           <button className="icon-btn" aria-pressed={s.showSidebar} title="Side bar (Ctrl+B)" onClick={() => settings.set({ showSidebar: !s.showSidebar })}>
@@ -81,8 +99,35 @@ export function TitleBar({ onPick, onAbout }: { onPick: () => void; onAbout: () 
   );
 }
 
+/** Take you to the open session in its terminal: its window if running, else resumed in a new one. */
+function OpenInClaudeCode({ id, cwd, live }: { id: string; cwd: string | null; live: boolean }) {
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => {
+    if (!note) return;
+    const t = window.setTimeout(() => setNote(null), 4000);
+    return () => window.clearTimeout(t);
+  }, [note]);
+  return (
+    <div className="occ-wrap">
+      <button
+        className="occ-btn"
+        title={live ? "Open in Claude Code: bring its terminal to the front" : "Open in Claude Code: resume it in a new terminal (claude --resume)"}
+        onClick={() =>
+          void openInClaudeCode(id, cwd)
+            .then((how) => setNote(how === "focused" ? "Its terminal is in front" : "Resumed in a new terminal"))
+            .catch((e) => setNote(String(e)))
+        }
+      >
+        <Terminal size={14} />
+        <span>Open in Claude Code</span>
+      </button>
+      {note && <div className="occ-note">{note}</div>}
+    </div>
+  );
+}
+
 /** "Ccboat ▾": the app's menu (updates, About, GitHub). A dot marks an update on offer. */
-function AppMenu({ onAbout }: { onAbout: () => void }) {
+function AppMenu({ onAbout, onHook, onLimits }: { onAbout: () => void; onHook: () => void; onLimits: () => void }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const update = useUpdate();
@@ -120,6 +165,12 @@ function AppMenu({ onAbout }: { onAbout: () => void }) {
               Check for updates
             </button>
           )}
+          <button role="menuitem" onClick={pick(onHook)}>
+            Answer prompts in Ccboat…
+          </button>
+          <button role="menuitem" onClick={pick(onLimits)}>
+            Show usage limits…
+          </button>
           <button role="menuitem" onClick={pick(onAbout)}>
             About Ccboat
           </button>

@@ -67,6 +67,8 @@ export interface Meta {
   customTitle: string | null;
   branch: string | null;
   model: string | null;
+  /** Reasoning effort of the last reply (`low` … `max`). */
+  effort: string | null;
   cwd: string | null;
   version: string | null;
   permissionMode: string | null;

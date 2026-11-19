@@ -22,7 +22,12 @@ npx tauri dev
 - See a transcript the way the app reads it, without a window:
   `cd src-tauri && cargo run --release --example dump -- <path to .jsonl> [steps to print]`
   prints the step counts by kind, the last steps, and how long the read took.
-- Tests: `cd src-tauri && cargo test --lib`; the UI: `npm run typecheck`.
+- Tests: `cd src-tauri && cargo test --lib` (and `cargo test --bin ccboat` for the desktop side:
+  Needs you, Open in Claude Code); the UI: `npm run typecheck`.
+- Try **Needs you** without touching your own Claude Code settings: start the dev build with
+  `CLAUDE_CONFIG_DIR` pointing at a scratch folder and `--config '{"identifier":"app.ccboat.dev"}'`
+  (so it runs beside an installed Ccboat), turn it on there, then run
+  `claude -p "<a prompt that fetches a page>" --settings <scratch>/settings.json` and answer the card.
 
 ## How a transcript becomes the IDE
 
@@ -64,6 +69,33 @@ Rust, `src-tauri/src/` (the window-free core `ccboat_core`, plus `main.rs` and `
   second and tied to the `Agent` step that started them (`meta.json`'s `toolUseId`, or the
   result's `agentId`). Status comes from the registry; a transcript written in the last 30 s but
   not registered (`claude -p`, SDK) counts as active.
+- `hooks.rs`: Ccboat's `PermissionRequest` hook in Claude Code's `settings.json`: found by its URL
+  path (`/ccboat/permission`), added and removed without touching anything else (a file that
+  doesn't parse is never written over; the original is backed up once; writes replace the file in
+  one step), and the token it carries.
+- `attention.rs` (desktop side): **Needs you**. A plain `std::net` HTTP/1.1 listener on
+  `127.0.0.1:47821` (`CCBOAT_HOOK_PORT` moves it) takes each hook POST (token checked, `Origin`
+  refused), shows it as a card (`ccb:attention`) and holds the connection until the UI answers
+  (`attention_answer`), Claude Code hangs up, or the registry shows the session moved on from
+  `waiting` (answered in the terminal); then it replies with the decision, or `{}` for none. A
+  thread reads the registry every second for `waiting` sessions without a request and `busy` →
+  `idle` turns (`done` cards). Answers: `allow` (+ the suggested `updatedPermissions`), `deny`
+  (`message`, `interrupt`), `AskUserQuestion` as `allow` with `updatedInput.answers` (question →
+  label, several joined with ", "), `ExitPlanMode` as `allow` with its input echoed back.
+- `terminal.rs` (desktop side): **Open in Claude Code**. A running session's host window is found
+  by walking up its parent processes to the first one with a visible top-level window
+  (`WindowsTerminal.exe`, `Code.exe`, a console); a finished one runs
+  `claude --resume <id>` in a new Windows Terminal tab (or a new PowerShell console) in its folder.
+  Only a validated session id goes on the command line.
+- `statusline.rs`: **Show usage limits**. Puts `"<ccboat.exe>" --statusline "<data>/statusline"` in
+  Claude Code's `statusLine` (yours kept in `original.json` there, with its `padding` and
+  `refreshInterval` carried over, and restored when turned off). Run that way (`main.rs` checks the
+  flag before Tauri starts, so no window and no single-instance check), Ccboat saves stdin as
+  `<session id>.json` and runs your original command with it through the shell Claude Code uses
+  (Git Bash on Windows when installed, else PowerShell; `sh` elsewhere), passing its output and exit
+  code back. `read` gives the open session's window size, the newest `rate_limits` of any session
+  (they're account-wide; `resets_at` is Unix seconds) and window sizes per model; snapshots older
+  than a week are deleted. Desktop side: `usage.rs` (`usage`, `limits_status`, `limits_set`).
 - `update.rs`: the updater (check, download, verify, install), driven by the UI's schedule;
   `desktop.rs`: the About box's folders and the GitHub links (fixed addresses only).
 - `watch.rs`: one thread polls the open session every 250 ms (1 s while hidden) and emits

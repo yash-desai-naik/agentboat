@@ -36,8 +36,14 @@ tauri-plugin-updater = "2"
 url = "2"
 
 [target.'cfg(windows)'.dependencies]
-# Already built for Tauri's windowing; whether a registered session's process is still running.
-windows = { version = "0.62", features = ["Win32_Foundation", "Win32_System_Threading"] }
+# Already built for Tauri's windowing; whether a registered session's process is still running,
+# and finding the window a running session is in ("Open in Claude Code").
+windows = { version = "0.62", features = [
+  "Win32_Foundation",
+  "Win32_System_Threading",
+  "Win32_System_Diagnostics_ToolHelp",
+  "Win32_UI_WindowsAndMessaging",
+] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

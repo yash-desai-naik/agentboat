@@ -3,6 +3,8 @@ import { ago, bytes } from "../lib/format";
 import { listSessions, openSession, useSession } from "../lib/store";
 import type { SessionEntry } from "../lib/types";
 import { IN_TAURI } from "../lib/tauri";
+import { openInClaudeCode } from "../lib/attention";
+import { Terminal } from "./Icons";
 
 const STATUS: Record<string, string> = { busy: "Working", waiting: "Needs you", idle: "Idle" };
 
@@ -101,7 +103,9 @@ function Row({ s, selected, current, onOpen }: { s: SessionEntry; selected: bool
     if (selected) ref.current?.scrollIntoView({ block: "nearest" });
   }, [selected]);
   const status = s.live ? (s.status === "busy" ? "working" : s.status === "waiting" ? "waiting" : "idle") : "ended";
+  const [note, setNote] = useState<string | null>(null);
   return (
+    <div className={`sl-row-wrap${selected ? " selected" : ""}`}>
     <button ref={ref} className={`sl-row${selected ? " selected" : ""}${current ? " current" : ""}`} onClick={onOpen} title={s.path}>
       <span className={`st-dot s-${status}`} />
       <span className="sl-main">
@@ -114,9 +118,22 @@ function Row({ s, selected, current, onOpen }: { s: SessionEntry; selected: bool
       </span>
       <span className="sl-meta">
         <span>{s.live ? STATUS[s.status ?? ""] ?? "Running" : ago(s.modified)}</span>
-        <span className="dim">{bytes(s.size)}</span>
+        <span className="dim">{note ?? bytes(s.size)}</span>
       </span>
     </button>
+      <button
+        className="sl-occ"
+        title={s.live ? "Open in Claude Code: bring its terminal to the front" : "Open in Claude Code: resume it in a new terminal"}
+        aria-label="Open in Claude Code"
+        onClick={() =>
+          void openInClaudeCode(s.id, s.cwd)
+            .then((how) => setNote(how === "focused" ? "In front" : "Resumed"))
+            .catch((e) => setNote(String(e)))
+        }
+      >
+        <Terminal size={14} />
+      </button>
+    </div>
   );
 }
 

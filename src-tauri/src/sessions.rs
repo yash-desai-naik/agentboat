@@ -136,6 +136,13 @@ impl SessionList {
         (out, older)
     }
 
+    /// A transcript's title (yours, else Claude Code's), else its last prompt.
+    pub fn title_of(&mut self, path: &Path) -> Option<String> {
+        let meta = std::fs::metadata(path).ok()?;
+        let p = self.peek(path, meta.len(), meta.modified().unwrap_or(UNIX_EPOCH));
+        p.custom.or(p.ai).or(p.last_prompt)
+    }
+
     fn peek(&mut self, path: &Path, size: u64, mtime: SystemTime) -> Peek {
         if let Some((s, m, p)) = self.cache.get(path)
             && *s == size
