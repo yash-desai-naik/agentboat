@@ -6,6 +6,8 @@ All notable changes to Ccboat are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-19
+
 ### Changed
 
 - The logo joins the boat family: the same boat as Tableboat and Fileboat, with no tile behind it,
@@ -155,7 +157,8 @@ The first release: watch a Claude Code session as a read-only IDE, live or repla
 - Light on resources: about 200 MB of memory, 5–9% of one core following a live session, under 1%
   minimized. Never writes anywhere and never uses the network.
 
-[Unreleased]: https://github.com/yash-desai-naik/ccboat/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/yash-desai-naik/ccboat/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/yash-desai-naik/ccboat/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/yash-desai-naik/ccboat/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/yash-desai-naik/ccboat/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/yash-desai-naik/ccboat/compare/v0.3.0...v0.4.0
