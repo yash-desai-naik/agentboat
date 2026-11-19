@@ -6,6 +6,23 @@ All notable changes to AgentBoat (called Ccboat up to 0.5.1) are listed here. Th
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-19
+
+### Added
+
+- **A welcome on first start.** It offers the two optional extras, **Answer prompts in AgentBoat**
+  and **Show usage limits**, each one click to turn on (or off), next to the session list. Nothing
+  is turned on without asking.
+- **A short tour** when you open your first session: six stops pointing at the real controls (the
+  timeline, the Claude panel, Needs you, Team view, the status bar, the AgentBoat menu). **Skip tour**
+  or Esc ends it at any stop; take it again from **AgentBoat ▾ → Quick tour**.
+- **Keyboard shortcuts:** press <kbd>?</kbd> (or **AgentBoat ▾ → Keyboard shortcuts**) for every key.
+- Moved in from Ccboat? A one-time note says so, and offers the tour.
+- With no Claude Code sessions yet, the list says how to start one.
+
+If you already use AgentBoat, nothing changes: the welcome and the tour are for new installs, and the
+tour is in the menu whenever you want it.
+
 ## [0.6.0] - 2026-11-19
 
 ### Changed
@@ -172,7 +189,8 @@ The first release: watch a Claude Code session as a read-only IDE, live or repla
 - Light on resources: about 200 MB of memory, 5–9% of one core following a live session, under 1%
   minimized. Never writes anywhere and never uses the network.
 
-[Unreleased]: https://github.com/yash-desai-naik/agentboat/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/yash-desai-naik/agentboat/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/yash-desai-naik/agentboat/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/yash-desai-naik/agentboat/releases/tag/v0.6.0
 [0.5.1]: https://github.com/yash-desai-naik/ccboat/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/yash-desai-naik/ccboat/compare/v0.4.1...v0.5.0

@@ -5,6 +5,8 @@ import type { SessionEntry } from "../lib/types";
 import { IN_TAURI } from "../lib/tauri";
 import { openInClaudeCode } from "../lib/attention";
 import { Terminal } from "./Icons";
+import { settings, useSettings } from "../lib/settings";
+import { Extras } from "./Onboarding";
 
 const STATUS: Record<string, string> = { busy: "Working", waiting: "Needs you", idle: "Idle" };
 
@@ -78,7 +80,12 @@ export function SessionList({ onOpened, autoFocus }: { onOpened?: () => void; au
       <div className="sl-scroll">
         {!IN_TAURI && <p className="side-empty">Run AgentBoat as the desktop app to see your sessions.</p>}
         {list === null && IN_TAURI && <p className="side-empty">Looking for sessions…</p>}
-        {list && shown.length === 0 && <p className="side-empty">No sessions match.</p>}
+        {list && list.length === 0 && (
+          <p className="side-empty">
+            No Claude Code sessions yet. Run <code>claude</code> in a project folder and the session shows up here right away.
+          </p>
+        )}
+        {list && list.length > 0 && shown.length === 0 && <p className="side-empty">No sessions match.</p>}
         {live.length > 0 && <div className="sl-group">Running now</div>}
         {live.map((s) => (
           <Row key={s.path} s={s} selected={shown.indexOf(s) === sel} current={head?.id === s.id} onOpen={() => open(s)} />
@@ -154,16 +161,34 @@ export function SessionPicker({ onClose }: { onClose: () => void }) {
 
 export function Welcome() {
   const { phase, error } = useSession();
+  // First run: a welcome, the two optional extras, and a tour once a session opens.
+  const first = !useSettings().onboarded;
   return (
-    <div className="welcome">
+    <div className={`welcome${first ? " first" : ""}`}>
       <div className="welcome-inner">
         <div className="welcome-head">
           <img src="/icon.svg" width={44} height={44} alt="" />
           <div>
-            <h1>Watch a Claude Code session</h1>
-            <p>Pick a session to see it as an IDE: files opening and changing, commands in the terminal, git in Source Control. Running sessions update live; finished ones replay step by step. Nothing is ever changed.</p>
+            {first ? (
+              <>
+                <h1>Welcome to AgentBoat</h1>
+                <p>
+                  See any Claude Code session as an IDE, live as Claude works or replayed step by step. It only watches: nothing is ever changed. Pick a
+                  session below and a short tour shows you around.{" "}
+                  <button className="link-btn" onClick={() => settings.set({ onboarded: true, toured: true })}>
+                    Skip the tour
+                  </button>
+                </p>
+              </>
+            ) : (
+              <>
+                <h1>Watch a Claude Code session</h1>
+                <p>Pick a session to see it as an IDE: files opening and changing, commands in the terminal, git in Source Control. Running sessions update live; finished ones replay step by step. Nothing is ever changed.</p>
+              </>
+            )}
           </div>
         </div>
+        {first && <Extras />}
         {phase === "error" && <div className="editor-banner err">{error}</div>}
         {phase === "loading" ? <p className="side-empty">Reading the transcript…</p> : <SessionList autoFocus />}
       </div>

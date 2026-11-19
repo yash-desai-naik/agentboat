@@ -83,3 +83,10 @@ pub fn open_url(url: String) -> Result<(), String> {
 pub fn open_repo_page() -> Result<(), String> {
     open_with_desktop(REPO_URL.as_ref())
 }
+
+/// Whether this copy moved in from Ccboat (AgentBoat's name up to 0.5.1): Ccboat's data folder,
+/// which the move leaves in place, is still there. The window then says so once.
+#[tauri::command]
+pub fn came_from_ccboat() -> bool {
+    dirs::data_local_dir().is_some_and(|d| d.join("app.ccboat").is_dir())
+}

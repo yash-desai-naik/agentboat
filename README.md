@@ -118,6 +118,10 @@ updater, so install 0.2.0 or later from the Releases page once by hand.
 
 A macOS build will follow (it compiles, but hasn't been run on a Mac yet).
 
+On first start, a welcome offers the two optional extras (below), and opening your first session
+starts a short tour of six stops; skip it any time, or take it again from **AgentBoat ▾ → Quick
+tour**. Press **?** for every keyboard shortcut.
+
 ### Coming from Ccboat
 
 AgentBoat was called Ccboat up to version 0.5.1 ([old repository](https://github.com/yash-desai-naik/ccboat)).

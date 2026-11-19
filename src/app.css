@@ -749,3 +749,142 @@ button.brand svg {
   font-size: var(--fs-sm);
   pointer-events: none;
 }
+
+/* ---------- onboarding: first-run extras, the tour, keyboard shortcuts ---------- */
+
+.welcome.first .sl-scroll {
+  max-height: max(180px, calc(100vh - 470px));
+}
+.extras {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+.extras-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px 10px;
+  font-size: var(--fs-md);
+}
+.extras-head .dim {
+  font-size: var(--fs-sm);
+}
+.extras-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}
+.extras-text {
+  flex: 1;
+  min-width: 0;
+}
+.extras-name {
+  font-weight: 600;
+}
+.extras-desc {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+.extras-on {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.extras .ny-callout {
+  margin: 0 14px 12px;
+}
+
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+}
+.tour-spot {
+  position: fixed;
+  border-radius: 8px;
+  box-shadow: 0 0 0 2px var(--accent);
+  pointer-events: none;
+  transition:
+    left 0.18s ease,
+    top 0.18s ease,
+    width 0.18s ease,
+    height 0.18s ease;
+}
+.tour-dim {
+  position: fixed;
+  inset: 0;
+}
+.tour-dim path {
+  fill: rgba(0, 0, 0, 0.55);
+}
+.tour-card {
+  position: fixed;
+  padding: 14px 16px 12px;
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: var(--shadow-pop);
+  font-size: var(--fs-md);
+}
+.tour-step {
+  font-size: var(--fs-sm);
+  margin-bottom: 2px;
+}
+.tour-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.tour-body {
+  color: var(--text-2);
+  line-height: 1.5;
+}
+.tour-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 5px;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--bg-hover);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 17px;
+  text-align: center;
+}
+.keys {
+  width: 100%;
+  border-collapse: collapse;
+}
+.keys td {
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.keys tr:last-child td {
+  border-bottom: none;
+}
+.keys-k {
+  white-space: nowrap;
+  width: 1%;
+  padding-right: 16px !important;
+}
+
+.update-notice.moved-notice {
+  right: auto;
+  left: 16px;
+}

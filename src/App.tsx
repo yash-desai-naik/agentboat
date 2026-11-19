@@ -8,6 +8,7 @@ import { AboutDialog } from "./ui/AboutDialog";
 import { UpdateNotice } from "./ui/UpdateNotice";
 import { HookDialog, NeedsYouPanel, useNeedsYouAlerts } from "./ui/NeedsYou";
 import { LimitsDialog } from "./ui/LimitsDialog";
+import { MovedNotice, ShortcutsDialog, Tour } from "./ui/Onboarding";
 import { ContextMenu } from "./ui/ContextMenu";
 import { ActivityBar, Sidebar, type View } from "./ide/Sidebar";
 import { EditorArea } from "./ide/EditorArea";
@@ -36,6 +37,8 @@ export function App() {
   const [hookOpen, setHookOpen] = useState(false);
   const [limitsOpen, setLimitsOpen] = useState(false);
   const [needsYou, setNeedsYou] = useState(false);
+  const [keysOpen, setKeysOpen] = useState(false);
+  const [touring, setTouring] = useState(false);
   useNeedsYouAlerts(useCallback(() => setNeedsYou(true), []));
   const [view, setView] = useState<View>("explorer");
   const ide = useMemo(() => derive(steps, cursor, head, session.watch), [steps, cursor, head, session.watch]);
@@ -66,6 +69,7 @@ export function App() {
       const t = e.target as HTMLElement;
       if (t.tagName === "INPUT" || t.tagName === "SELECT" || t.tagName === "TEXTAREA") return;
       const ctrl = e.ctrlKey || e.metaKey;
+      if (e.key === "?" && !ctrl && !e.altKey) return void (e.preventDefault(), setKeysOpen(true));
       if (ctrl && e.key.toLowerCase() === "o") {
         e.preventDefault();
         setPicking(true);
@@ -108,6 +112,25 @@ export function App() {
   }, []);
 
   const ready = phase === "ready" && head;
+
+  // The tour starts on the first session opened (and again whenever "Quick tour" asks), once
+  // the IDE has laid out.
+  const isReady = !!ready;
+  useEffect(() => {
+    if (!isReady || s.toured) return;
+    if (!settings.get().onboarded) settings.set({ onboarded: true });
+    const t = window.setTimeout(() => setTouring(true), 700);
+    return () => window.clearTimeout(t);
+  }, [isReady, s.toured]);
+  const endTour = useCallback(() => {
+    setTouring(false);
+    // Someone who just took the tour doesn't need the note offering it.
+    settings.set({ toured: true, ccboatNoticeSeen: true });
+  }, []);
+  const startTour = () => {
+    settings.set({ onboarded: true, toured: false });
+    if (!isReady) setPicking(true);
+  };
   // The team grid takes the editor and terminal area while it's open.
   const teamOn = s.showTeam && (head?.agents.length ?? 0) > 0;
   const cols = [
@@ -124,6 +147,8 @@ export function App() {
         onAbout={() => setAboutOpen(true)}
         onHook={() => setHookOpen(true)}
         onLimits={() => setLimitsOpen(true)}
+        onTour={startTour}
+        onShortcuts={() => setKeysOpen(true)}
         needsYou={needsYou}
         onNeedsYou={() => setNeedsYou((v) => !v)}
       />
@@ -185,6 +210,9 @@ export function App() {
       {needsYou && <NeedsYouPanel onClose={() => setNeedsYou(false)} />}
       {hookOpen && <HookDialog onClose={() => setHookOpen(false)} />}
       {limitsOpen && <LimitsDialog onClose={() => setLimitsOpen(false)} />}
+      {keysOpen && <ShortcutsDialog onClose={() => setKeysOpen(false)} />}
+      {touring && isReady && <Tour onEnd={endTour} />}
+      {s.onboarded && !touring && <MovedNotice onTour={startTour} />}
       <UpdateNotice />
       <ContextMenu />
     </div>

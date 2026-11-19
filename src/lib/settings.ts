@@ -32,6 +32,12 @@ export interface Settings {
   needsYouFront: boolean;
   /** List sessions that finish their turn, not only ones waiting on a prompt. */
   needsYouDone: boolean;
+  /** The first-run welcome (optional extras above the session list) has been seen. */
+  onboarded: boolean;
+  /** The tour has been taken or skipped; it starts on the next session opened while false. */
+  toured: boolean;
+  /** The one-time "Ccboat is now AgentBoat" note has been read. */
+  ccboatNoticeSeen: boolean;
 }
 
 const DEFAULTS: Settings = {
@@ -53,6 +59,9 @@ const DEFAULTS: Settings = {
   needsYouOpen: true,
   needsYouFront: false,
   needsYouDone: true,
+  onboarded: false,
+  toured: false,
+  ccboatNoticeSeen: false,
 };
 
 const KEY = "ccb.settings";
@@ -60,7 +69,12 @@ const KEY = "ccb.settings";
 function load(): Settings {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...DEFAULTS, ...JSON.parse(raw) };
+    if (raw) {
+      const saved = JSON.parse(raw);
+      // Settings from before the welcome and tour existed: someone who already knows the app.
+      const known = "onboarded" in saved ? {} : { onboarded: true, toured: true };
+      return { ...DEFAULTS, ...known, ...saved };
+    }
   } catch {
     /* private storage or bad JSON: defaults */
   }

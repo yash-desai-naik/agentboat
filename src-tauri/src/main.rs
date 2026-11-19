@@ -56,6 +56,7 @@ fn main() {
             desktop::open_releases_page,
             desktop::open_repo_page,
             desktop::open_url,
+            desktop::came_from_ccboat,
             terminal::open_in_claude_code,
             editors::editors,
             editors::open_in_editor,

@@ -14,6 +14,8 @@ export function TitleBar({
   onAbout,
   onHook,
   onLimits,
+  onTour,
+  onShortcuts,
   needsYou,
   onNeedsYou,
 }: {
@@ -21,6 +23,8 @@ export function TitleBar({
   onAbout: () => void;
   onHook: () => void;
   onLimits: () => void;
+  onTour: () => void;
+  onShortcuts: () => void;
   needsYou: boolean;
   onNeedsYou: () => void;
 }) {
@@ -42,7 +46,7 @@ export function TitleBar({
 
   return (
     <header className={IS_MAC ? "titlebar mac" : "titlebar"} data-tauri-drag-region>
-      <AppMenu onAbout={onAbout} onHook={onHook} onLimits={onLimits} />
+      <AppMenu onAbout={onAbout} onHook={onHook} onLimits={onLimits} onTour={onTour} onShortcuts={onShortcuts} />
       <div className="tb-fill" data-tauri-drag-region />
       <button
         className="session-switch"
@@ -190,7 +194,19 @@ function OpenInClaudeCode({ id, cwd, live }: { id: string; cwd: string | null; l
 }
 
 /** "AgentBoat ▾": the app's menu (updates, About, GitHub). A dot marks an update on offer. */
-function AppMenu({ onAbout, onHook, onLimits }: { onAbout: () => void; onHook: () => void; onLimits: () => void }) {
+function AppMenu({
+  onAbout,
+  onHook,
+  onLimits,
+  onTour,
+  onShortcuts,
+}: {
+  onAbout: () => void;
+  onHook: () => void;
+  onLimits: () => void;
+  onTour: () => void;
+  onShortcuts: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const update = useUpdate();
@@ -233,6 +249,13 @@ function AppMenu({ onAbout, onHook, onLimits }: { onAbout: () => void; onHook: (
           </button>
           <button role="menuitem" onClick={pick(onLimits)}>
             Show usage limits…
+          </button>
+          <div className="app-menu-sep" />
+          <button role="menuitem" onClick={pick(onTour)}>
+            Quick tour
+          </button>
+          <button role="menuitem" onClick={pick(onShortcuts)}>
+            Keyboard shortcuts <span className="ctx-dim">?</span>
           </button>
           <button role="menuitem" onClick={pick(onAbout)}>
             About AgentBoat
