@@ -1,21 +1,21 @@
 [package]
-name = "ccboat"
-version = "0.5.1"
+name = "agentboat"
+version = "0.6.0"
 description = "Watch a Claude Code session as an IDE, live or replayed, read-only"
 license = "MIT"
 edition = "2024"
 publish = false
-default-run = "ccboat"
+default-run = "agentboat"
 
 # The code with no window in it (the session list, the transcript-to-timeline parser, git command
 # recognition), testable with `cargo test --lib`.
 [lib]
-name = "ccboat_core"
+name = "agentboat_core"
 path = "src/lib.rs"
 
 # The desktop app.
 [[bin]]
-name = "ccboat"
+name = "agentboat"
 path = "src/main.rs"
 
 [build-dependencies]
@@ -32,7 +32,7 @@ serde_json = { version = "1", features = ["raw_value", "preserve_order"] }
 dirs = "7"
 # Updates from GitHub releases, signature-checked against the key in tauri.conf.json.
 tauri-plugin-updater = "2"
-# CCBOAT_UPDATE_URL (a test feed) is parsed as a URL.
+# AGENTBOAT_UPDATE_URL (a test feed) is parsed as a URL.
 url = "2"
 
 [target.'cfg(windows)'.dependencies]

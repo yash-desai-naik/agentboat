@@ -15,14 +15,14 @@ export function UpdateNotice() {
     body = (
       <>
         <div className="update-title">You're up to date</div>
-        <div className="update-sub">This is the newest version of Ccboat.</div>
+        <div className="update-sub">This is the newest version of AgentBoat.</div>
       </>
     );
   } else if (u.phase === "downloading" && u.info) {
     const pct = u.total ? Math.min(100, (u.downloaded / u.total) * 100) : null;
     body = (
       <>
-        <div className="update-title">Downloading Ccboat {u.info.version}…</div>
+        <div className="update-title">Downloading AgentBoat {u.info.version}…</div>
         <div className="update-bar" role="progressbar" aria-valuenow={pct ?? undefined} aria-valuemin={0} aria-valuemax={100}>
           <span style={{ width: `${pct ?? 30}%` }} />
         </div>
@@ -32,8 +32,8 @@ export function UpdateNotice() {
   } else if (u.phase === "installing" && u.info) {
     body = (
       <>
-        <div className="update-title">Installing Ccboat {u.info.version}…</div>
-        <div className="update-sub">Ccboat closes and opens again on the new version.</div>
+        <div className="update-title">Installing AgentBoat {u.info.version}…</div>
+        <div className="update-sub">AgentBoat closes and opens again on the new version.</div>
       </>
     );
   } else if (u.phase === "error") {
@@ -54,7 +54,7 @@ export function UpdateNotice() {
   } else if (u.info) {
     body = (
       <>
-        <div className="update-title">Ccboat {u.info.version} is available</div>
+        <div className="update-title">AgentBoat {u.info.version} is available</div>
         <div className="update-sub">You have {u.info.current}.</div>
         <div className="update-actions">
           <button className="btn primary small-btn" onClick={() => void installUpdate()}>
@@ -96,7 +96,7 @@ export function UpdateNotice() {
 function WhatsNew({ info, onClose }: { info: UpdateInfo; onClose: () => void }) {
   return (
     <Dialog
-      title={`What's new in Ccboat ${info.version}`}
+      title={`What's new in AgentBoat ${info.version}`}
       onClose={onClose}
       width={640}
       footer={

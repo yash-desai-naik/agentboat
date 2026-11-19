@@ -1,10 +1,10 @@
-# Watches Ccboat's real memory and CPU over time: the app process plus every WebView2 process it
+# Watches AgentBoat's real memory and CPU over time: the app process plus every WebView2 process it
 # started. "Private" is the private working set (Task Manager's "Memory" column); CPU is shown as
 # a percentage of one core and of the whole machine.
 #
 #   powershell -ExecutionPolicy Bypass -File scripts\measure.ps1 [-Seconds 120] [-Every 2] [-Csv out.csv]
 #
-# Measures an already running Ccboat (start it first, with the window shown). One line per sample,
+# Measures an already running AgentBoat (start it first, with the window shown). One line per sample,
 # then a summary per phase if you passed -Marks (a file of "unix-ms label" lines written while
 # measuring, e.g. by the CDP script that drives the app).
 
@@ -33,8 +33,8 @@ function Get-Tree([int]$RootId) {
     return $ids
 }
 
-$proc = Get-Process ccboat -ErrorAction SilentlyContinue | Select-Object -First 1
-if (-not $proc) { throw "Ccboat is not running." }
+$proc = Get-Process agentboat -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $proc) { throw "AgentBoat is not running." }
 $rootId = $proc.Id
 $cores = [Environment]::ProcessorCount
 $ids = Get-Tree $rootId
@@ -50,7 +50,7 @@ function Sample-Cpu($Ids) {
 
 function Sample-Mem($Ids) {
     $app = 0.0; $web = 0.0
-    $perf = Get-CimInstance Win32_PerfFormattedData_PerfProc_Process -Filter "Name like 'ccboat%' or Name like 'msedgewebview2%'"
+    $perf = Get-CimInstance Win32_PerfFormattedData_PerfProc_Process -Filter "Name like 'agentboat%' or Name like 'msedgewebview2%'"
     foreach ($p in $perf) {
         $id = [int]$p.IDProcess
         if (-not $Ids.Contains($id)) { continue }

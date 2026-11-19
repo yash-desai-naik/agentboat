@@ -127,7 +127,7 @@ function TabButton({ tab, active, step, present, head }: { tab: Tab; active: boo
 function EmptyEditor({ head }: { head: Head | null }) {
   return (
     <div className="editor-empty">
-      <div className="editor-empty-mark">ccboat</div>
+      <div className="editor-empty-mark">agentboat</div>
       <p>Files open here as Claude reads and changes them.</p>
       {head?.meta.cwd && <p className="dim mono">{head.meta.cwd}</p>}
     </div>

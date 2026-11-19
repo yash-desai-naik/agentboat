@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- Ccboat: the boats' boat (Fileboat, Tableboat) with an editor window for a sail, code being
+  <!-- AgentBoat: the boats' boat (Fileboat, Tableboat) with an editor window for a sail, code being
        written in it. No tile: works on light and dark backgrounds. -->
   <defs>
     <linearGradient id="win" x1="0" y1="0" x2="0" y2="1">

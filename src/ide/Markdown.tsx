@@ -15,7 +15,7 @@ export function safeLink(href: string | null): string | null {
 }
 
 // Links keep their address, so copying text copies working links; anything that isn't a web or
-// mail link loses it. A click never navigates Ccboat's own window: it opens the link in the
+// mail link loses it. A click never navigates AgentBoat's own window: it opens the link in the
 // default browser (see `openLinksInBrowser`). Images aren't loaded.
 DOMPurify.addHook("afterSanitizeAttributes", (node) => {
   if (node.tagName === "A") {
@@ -35,7 +35,7 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
 
 /**
  * Every link click in the page opens the link in the default browser instead of navigating the
- * app's window (which would leave Ccboat). Rust checks the address again (web and mail only).
+ * app's window (which would leave AgentBoat). Rust checks the address again (web and mail only).
  */
 export function openLinksInBrowser() {
   document.addEventListener(

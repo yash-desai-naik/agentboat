@@ -1,4 +1,4 @@
-/* The app's own chrome: the Ccboat menu, dialogs (About, What's new), the update notice. */
+/* The app's own chrome: the AgentBoat menu, dialogs (About, What's new), the update notice. */
 
 /* ---------- buttons ---------- */
 
@@ -53,7 +53,7 @@
   overflow-wrap: anywhere;
 }
 
-/* ---------- the Ccboat menu ---------- */
+/* ---------- the AgentBoat menu ---------- */
 
 .app-menu-wrap {
   position: relative;

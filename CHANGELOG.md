@@ -1,10 +1,25 @@
 # Changelog
 
-All notable changes to Ccboat are listed here. The format follows
+All notable changes to AgentBoat (called Ccboat up to 0.5.1) are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.6.0] - 2026-11-19
+
+### Changed
+
+- **Ccboat is now AgentBoat.** Same app, new name and a new home:
+  <https://github.com/yash-desai-naik/agentboat>. Installing this update replaces Ccboat with
+  AgentBoat and moves you in on its first start, with nothing to do:
+  - your view settings, the last session and your saved status line come along;
+  - **Answer prompts** and **Show usage limits**, if you had them on, stay on: their entries in
+    Claude Code's `settings.json` are pointed at AgentBoat (same port and token);
+  - Ccboat is uninstalled, and AgentBoat takes its place in the Start menu (and on the desktop, if
+    Ccboat was there). Re-pin it to the taskbar if you had Ccboat pinned.
+- Updates now come from AgentBoat's releases. Ccboat's repository stays up, but gets no new
+  versions.
 
 ## [0.5.1] - 2026-11-19
 
@@ -157,7 +172,8 @@ The first release: watch a Claude Code session as a read-only IDE, live or repla
 - Light on resources: about 200 MB of memory, 5–9% of one core following a live session, under 1%
   minimized. Never writes anywhere and never uses the network.
 
-[Unreleased]: https://github.com/yash-desai-naik/ccboat/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/yash-desai-naik/agentboat/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/yash-desai-naik/agentboat/releases/tag/v0.6.0
 [0.5.1]: https://github.com/yash-desai-naik/ccboat/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/yash-desai-naik/ccboat/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/yash-desai-naik/ccboat/compare/v0.4.0...v0.4.1

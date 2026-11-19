@@ -1,10 +1,10 @@
-//! Updates: Ccboat checks GitHub for a newer release (shortly after start-up and once a day,
+//! Updates: AgentBoat checks GitHub for a newer release (shortly after start-up and once a day,
 //! unless turned off in About, and whenever you ask), and on request downloads the signed
 //! installer, verifies it against the public key in tauri.conf.json, runs it (a small progress
 //! window, no questions) and starts again on the new version.
 //!
 //! The feed is `latest.json` on the latest published GitHub release, made by the release workflow;
-//! drafts and pre-releases are never offered. This is Ccboat's only use of the network.
+//! drafts and pre-releases are never offered. This is AgentBoat's only use of the network.
 
 use serde::Serialize;
 use std::sync::Mutex;
@@ -41,9 +41,9 @@ fn info(u: &Update) -> UpdateInfo {
 
 /// Ask GitHub for a newer version. `Ok(None)` = up to date.
 async fn check(app: &AppHandle) -> Result<Option<UpdateInfo>, String> {
-    // CCBOAT_UPDATE_URL points a test build at another feed.
+    // AGENTBOAT_UPDATE_URL points a test build at another feed.
     let mut builder = app.updater_builder().timeout(Duration::from_secs(30));
-    if let Some(url) = std::env::var("CCBOAT_UPDATE_URL")
+    if let Some(url) = std::env::var("AGENTBOAT_UPDATE_URL")
         .ok()
         .and_then(|u| url::Url::parse(&u).ok())
     {
@@ -89,7 +89,7 @@ struct Progress {
 }
 
 /// Download, verify and install the pending update, and start the new version. On Windows the
-/// installer takes over and starts Ccboat again; on macOS the app bundle is replaced in place.
+/// installer takes over and starts AgentBoat again; on macOS the app bundle is replaced in place.
 #[tauri::command]
 pub async fn update_install(app: AppHandle) -> Result<(), String> {
     let state = app.state::<UpdateState>();

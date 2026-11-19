@@ -1,4 +1,7 @@
-# Ccboat
+# AgentBoat
+
+> **Formerly Ccboat.** Same app, new name, from version 0.6.0. Using Ccboat? It updates itself to
+> AgentBoat and brings your settings along: see [Coming from Ccboat](#coming-from-ccboat).
 
 Watch a **Claude Code session as an IDE**: files open and change in the editor, commands run in
 the terminal, commits and pushes land in Source Control, live as Claude works or replayed step by
@@ -12,17 +15,35 @@ runtime.
 ## Download
 
 **Windows 10 and 11:** the installer is on the
-[Releases page](https://github.com/yash-desai-naik/ccboat/releases/latest)
-(`Ccboat_x.y.z_x64-setup.exe`). It installs for your user only, no administrator rights needed. It
+[Releases page](https://github.com/yash-desai-naik/agentboat/releases/latest)
+(`AgentBoat_x.y.z_x64-setup.exe`). It installs for your user only, no administrator rights needed. It
 isn't code-signed yet, so SmartScreen may ask: **More info**, then **Run anyway**. Each release
 lists the file's SHA-256 checksum. You need [Claude Code](https://claude.com/claude-code) on the
-same machine; Ccboat shows its sessions.
+same machine; AgentBoat shows its sessions.
 
-Ccboat keeps itself up to date: it tells you when a new version is out (**Ccboat ▾** in the title bar
+AgentBoat keeps itself up to date: it tells you when a new version is out (**AgentBoat ▾** in the title bar
 → **Check for updates**), shows what's new, and installs it in place. Version 0.1.0 predates the
 updater, so install 0.2.0 or later from the Releases page once by hand.
 
 A macOS build will follow (it compiles, but hasn't been run on a Mac yet).
+
+### Coming from Ccboat
+
+AgentBoat was called Ccboat up to version 0.5.1 ([old repository](https://github.com/yash-desai-naik/ccboat)).
+You don't need to do anything:
+
+1. Ccboat offers one last update (**Ccboat ▾ → Check for updates**, or it tells you itself). It
+   installs AgentBoat and opens it.
+2. On its first start AgentBoat moves you in: it copies Ccboat's settings (layout, replay speed, the
+   last session, your saved status line), points **Answer prompts** and **Show usage limits** in
+   Claude Code's `settings.json` at AgentBoat (same port and token, so nothing to turn on again),
+   removes the old Ccboat install, and puts AgentBoat in the Start menu (and on the desktop, if
+   Ccboat was there).
+
+Prefer to do it by hand? Install AgentBoat from the
+[Releases page](https://github.com/yash-desai-naik/agentboat/releases/latest) and start it: it does
+the same. A taskbar pin to Ccboat stops working once Ccboat is removed; pin AgentBoat instead.
+Ccboat's own data folder (`%LOCALAPPDATA%app.ccboat`) is left in place; delete it once you're happy.
 
 ## What you see
 
@@ -61,7 +82,7 @@ A macOS build will follow (it compiles, but hasn't been run on a Mac yet).
 - **Claude panel.** Your prompts, Claude's replies, and each tool call as a line (with time
   taken and lines changed). Click any line to jump there. *+ Agents* shows subagents' steps too.
 - **Needs you** (the bell in the title bar). Every running session that is waiting on you, from
-  any of your sessions. With **Answer prompts in Ccboat** on (**Ccboat ▾**), its prompts are
+  any of your sessions. With **Answer prompts in AgentBoat** on (**AgentBoat ▾**), its prompts are
   answered right there: a tool's permission (Allow, Always allow the rule Claude Code offers, or
   Deny with what to do instead), Claude's questions (pick options or type your own answer), a plan
   (Approve, or Keep planning with feedback). The terminal shows the same prompt; whichever you
@@ -77,7 +98,7 @@ A macOS build will follow (it compiles, but hasn't been run on a Mac yet).
   with the line, or open it in VS Code or Zed at that line. Selected text can be copied too.
 - **Status bar.** The session's state, branch, permission mode, the context in use as a share of
   the window (a bar and a percentage), and the model with its reasoning effort. With **Show usage
-  limits** on (**Ccboat ▾**), also your 5-hour and weekly usage, each with a bar and when it
+  limits** on (**AgentBoat ▾**), also your 5-hour and weekly usage, each with a bar and when it
   resets.
 - **Timeline** (hidden until you want it: the timeline button in the title bar, or Ctrl+T; while
   it's hidden the status bar shows Replay or Step n of m when you're not watching the present, and
@@ -124,7 +145,7 @@ Measured on Windows 11 (release build, 12 cores), details in
 
 ## What it can't show
 
-Ccboat sees what Claude Code writes to its transcript, so:
+AgentBoat sees what Claude Code writes to its transcript, so:
 
 - A command's output appears when the command finishes (the transcript doesn't record output
   while a command runs).
@@ -146,22 +167,22 @@ Only from `~/.claude` (or `CLAUDE_CONFIG_DIR`), read-only:
 - `projects/<folder>/<sessionId>/subagents/agent-<id>.jsonl` and `.meta.json`: subagents.
 
 It never writes anywhere (except its own window settings in the WebView's storage), with one
-exception you turn on yourself: **Answer prompts in Ccboat** adds one hook to Claude Code's
+exception you turn on yourself: **Answer prompts in AgentBoat** adds one hook to Claude Code's
 `settings.json`, and turning it off removes it (nothing else in the file changes; a copy of the file
-from before is kept as `settings.json.ccboat-backup`). It is an `http` `PermissionRequest` hook:
-Claude Code sends each prompt to Ccboat on `127.0.0.1:47821` and waits for your answer while the
+from before is kept as `settings.json.agentboat-backup`). It is an `http` `PermissionRequest` hook:
+Claude Code sends each prompt to AgentBoat on `127.0.0.1:47821` and waits for your answer while the
 terminal shows the prompt too. Requests must carry a random token written into the hook, and
-requests from web pages are refused. When Ccboat isn't running, Claude Code asks in the terminal as
+requests from web pages are refused. When AgentBoat isn't running, Claude Code asks in the terminal as
 usual.
 
 **Show usage limits** is the other one. Claude Code reports the 5-hour and weekly limits and the
-context window's size only to its status line, so Ccboat sets Claude Code's `statusLine` to run
-itself (`ccboat --statusline <folder>`): it saves what Claude Code sends in its own data folder, then
+context window's size only to its status line, so AgentBoat sets Claude Code's `statusLine` to run
+itself (`agentboat --statusline <folder>`): it saves what Claude Code sends in its own data folder, then
 runs the status line you had with the same input, so your terminal shows what it did before.
 Turning it off puts your `statusLine` back as it was.
 
-Its only use of the network is the update check: it asks GitHub for Ccboat's latest release at start-up and once a
-day (turn that off in **Ccboat ▾ → About Ccboat**), and downloads an update only when you choose
+Its only use of the network is the update check: it asks GitHub for AgentBoat's latest release at start-up and once a
+day (turn that off in **AgentBoat ▾ → About AgentBoat**), and downloads an update only when you choose
 **Install and restart**. Updates are signed, and each download is checked against the key built
 into the app before it runs.
 

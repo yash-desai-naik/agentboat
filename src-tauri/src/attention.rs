@@ -2,8 +2,8 @@
 //!
 //! Two sources:
 //! - **Prompts** (`permission`, `question`, `plan`): Claude Code's `PermissionRequest` hook POSTs
-//!   each one to Ccboat (see `ccboat_core::hooks`). The request is held open until you answer in
-//!   Ccboat, which replies with the decision. The terminal shows its own prompt meanwhile; if you
+//!   each one to AgentBoat (see `agentboat_core::hooks`). The request is held open until you answer in
+//!   AgentBoat, which replies with the decision. The terminal shows its own prompt meanwhile; if you
 //!   answer there instead, the registry shows the session move on, and the request is let go.
 //! - **The registry** (`waiting`, `done`): a session waiting on you in its terminal without a hook
 //!   request (one started before the hook was on, an MCP server asking for input), and a session
@@ -13,9 +13,9 @@
 //! The UI gets the whole list as `ccb:attention` whenever it changes.
 
 use crate::watch::Sessions;
-use ccboat_core::claude::{Registered, claude_dir, find_transcript, folder_label};
-use ccboat_core::hooks;
-use ccboat_core::sessions::live_sessions;
+use agentboat_core::claude::{Registered, claude_dir, find_transcript, folder_label};
+use agentboat_core::hooks;
+use agentboat_core::sessions::live_sessions;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::{HashMap, HashSet};
@@ -37,7 +37,7 @@ pub struct Item {
     pub cwd: Option<String>,
     pub folder: String,
     pub title: Option<String>,
-    /// The transcript, to watch the session in Ccboat.
+    /// The transcript, to watch the session in AgentBoat.
     pub transcript: Option<String>,
     /// The subagent asking, if it isn't the main agent.
     pub agent_type: Option<String>,
@@ -146,7 +146,7 @@ fn serve(app: AppHandle, att: Attention) {
         Ok(l) => l,
         Err(e) => {
             att.lock().error = Some(format!(
-                "Port {port} is taken ({e}), so prompts can't reach Ccboat. Is another copy running?"
+                "Port {port} is taken ({e}), so prompts can't reach AgentBoat. Is another copy running?"
             ));
             return;
         }
@@ -276,7 +276,8 @@ fn handle(app: AppHandle, att: Attention, stream: TcpStream) {
     let Some(req) = read_request(&stream) else {
         return;
     };
-    if req.method != "POST" || req.path != hooks::HOOK_PATH {
+    // Ccboat's path too, until AgentBoat's first start has rewritten the hook.
+    if req.method != "POST" || (req.path != hooks::HOOK_PATH && req.path != hooks::LEGACY_HOOK_PATH) {
         return respond(&stream, 404, "{}");
     }
     // Browsers always send an Origin: a web page can't post prompts here.
@@ -286,6 +287,7 @@ fn handle(app: AppHandle, att: Attention, stream: TcpStream) {
     let token = req
         .headers
         .get(&hooks::TOKEN_HEADER.to_ascii_lowercase())
+        .or_else(|| req.headers.get(&hooks::LEGACY_TOKEN_HEADER.to_ascii_lowercase()))
         .map(String::as_str)
         .unwrap_or("");
     if !att.token_ok(token) {
@@ -597,9 +599,9 @@ pub fn attention_dismiss(id: u64, app: AppHandle, att: tauri::State<'_, Attentio
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HookStatus {
-    /// Ccboat's hook is in Claude Code's user settings.
+    /// AgentBoat's hook is in Claude Code's user settings.
     installed: bool,
-    /// ...for the port Ccboat listens on.
+    /// ...for the port AgentBoat listens on.
     current: bool,
     listening: bool,
     port: u16,
@@ -632,7 +634,7 @@ pub fn hook_status(att: tauri::State<'_, Attention>) -> HookStatus {
     }
 }
 
-/// Turn "answer prompts in Ccboat" on or off: add or remove Ccboat's hook.
+/// Turn "answer prompts in AgentBoat" on or off: add or remove AgentBoat's hook.
 #[tauri::command]
 pub fn hook_set(on: bool, att: tauri::State<'_, Attention>) -> Result<(), String> {
     let dir = claude_dir().ok_or("No Claude Code folder.")?;
@@ -697,7 +699,7 @@ mod tests {
     #[test]
     fn a_turn_ending_is_a_done_card_once() {
         let mut g = Inner::default();
-        // Already idle when Ccboat starts: nothing to say.
+        // Already idle when AgentBoat starts: nothing to say.
         assert!(reconcile(&mut g, &live(&[reg("a", "idle", 1)])).0.is_empty());
         reconcile(&mut g, &live(&[reg("a", "busy", 2)]));
         let (adds, _) = reconcile(&mut g, &live(&[reg("a", "idle", 3)]));

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { limitsStatus, refreshLimitsInstalled, setLimits, type LimitsStatus } from "../lib/usage";
 import { Dialog } from "./Dialog";
 
-/** Turn "Show usage limits" on or off: Ccboat's status line, wrapping yours. */
+/** Turn "Show usage limits" on or off: AgentBoat's status line, wrapping yours. */
 export function LimitsDialog({ onClose }: { onClose: () => void }) {
   const [st, setSt] = useState<LimitsStatus | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -47,10 +47,10 @@ export function LimitsDialog({ onClose }: { onClose: () => void }) {
     >
       <p>
         The status bar can show your <b>5-hour</b> and <b>weekly</b> usage with when each resets, and the exact size of each session's context
-        window. Claude Code tells these only to its status line, so Ccboat becomes the status line and keeps a copy.
+        window. Claude Code tells these only to its status line, so AgentBoat becomes the status line and keeps a copy.
       </p>
       <p className="dim">
-        Ccboat sets <code>statusLine</code> in <code>{st?.settings || "~/.claude/settings.json"}</code> to run itself: it saves what Claude Code
+        AgentBoat sets <code>statusLine</code> in <code>{st?.settings || "~/.claude/settings.json"}</code> to run itself: it saves what Claude Code
         sends, then runs the status line you had, so your terminal looks the same. Turning this off puts yours back exactly as it was. Figures
         update after each reply; sessions started before you turn it on update after their next reply.
       </p>

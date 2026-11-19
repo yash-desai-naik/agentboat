@@ -6,7 +6,7 @@ import { IN_TAURI } from "./tauri";
 /**
  * "Needs you": every running session waiting on you (src-tauri/src/attention.rs). Prompts
  * (`permission`, `question`, `plan`) come from Claude Code's hook and are answered here;
- * `waiting` (a prompt in its terminal Ccboat can't see) and `done` (finished its turn) can only be
+ * `waiting` (a prompt in its terminal AgentBoat can't see) and `done` (finished its turn) can only be
  * opened.
  */
 export type AttentionKind = "permission" | "question" | "plan" | "waiting" | "done";

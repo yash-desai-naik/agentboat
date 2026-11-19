@@ -5,7 +5,7 @@ src-tauri/gen/
 *.log
 .DS_Store
 
-# Icon variants `tauri icon` makes for platforms Ccboat doesn't ship (only Windows and macOS)
+# Icon variants `tauri icon` makes for platforms AgentBoat doesn't ship (only Windows and macOS)
 src-tauri/icons/ios/
 src-tauri/icons/android/
 src-tauri/icons/Square*.png

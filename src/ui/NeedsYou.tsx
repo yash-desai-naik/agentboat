@@ -47,7 +47,7 @@ export function NeedsYouButton({ open, onToggle }: { open: boolean; onToggle: ()
   );
 }
 
-/** Opens the panel (and, if you asked, brings Ccboat to the front) when something new needs you. */
+/** Opens the panel (and, if you asked, brings AgentBoat to the front) when something new needs you. */
 export function useNeedsYouAlerts(open: () => void) {
   const items = useAttention();
   const seen = useRef<Set<number>>(new Set());
@@ -181,7 +181,7 @@ function Card({ item }: { item: AttentionItem }) {
           </button>
         )}
         {item.transcript && (
-          <button className="linkish" onClick={() => void openSession(item.transcript!)} title="Watch this session in Ccboat">
+          <button className="linkish" onClick={() => void openSession(item.transcript!)} title="Watch this session in AgentBoat">
             <Eye size={13} /> Watch
           </button>
         )}
@@ -507,7 +507,7 @@ export function HookDialog({ onClose }: { onClose: () => void }) {
   const on = !!st?.installed;
   return (
     <Dialog
-      title="Answer prompts in Ccboat"
+      title="Answer prompts in AgentBoat"
       onClose={onClose}
       width={560}
       footer={
@@ -533,8 +533,8 @@ export function HookDialog({ onClose }: { onClose: () => void }) {
         terminal shows the same prompt: answer in either place.
       </p>
       <p className="dim">
-        For this Ccboat adds one hook to Claude Code's settings, <code>{st?.settings || "~/.claude/settings.json"}</code>, and removes it when you turn this
-        off. Nothing else in the file changes; a copy of it from before is kept as <code>settings.json.ccboat-backup</code>. When Ccboat isn't running,
+        For this AgentBoat adds one hook to Claude Code's settings, <code>{st?.settings || "~/.claude/settings.json"}</code>, and removes it when you turn this
+        off. Nothing else in the file changes; a copy of it from before is kept as <code>settings.json.agentboat-backup</code>. When AgentBoat isn't running,
         Claude Code asks in the terminal as usual. Sessions started from now on are covered; restart ones already running if they don't show up.
       </p>
       <div className="ny-status">
@@ -546,7 +546,7 @@ export function HookDialog({ onClose }: { onClose: () => void }) {
               ? st.current
                 ? `On. Listening on 127.0.0.1:${st.port}.`
                 : "On, but for another port: turn it off and on again."
-              : "On, but Ccboat can't listen for prompts."
+              : "On, but AgentBoat can't listen for prompts."
             : "Off."}
       </div>
       {(err || st?.error) && <div className="ny-callout err">{err ?? st?.error}</div>}
@@ -556,7 +556,7 @@ export function HookDialog({ onClose }: { onClose: () => void }) {
           session needs you
         </label>
         <label>
-          <input type="checkbox" checked={s.needsYouFront} onChange={(e) => settings.set({ needsYouFront: e.target.checked })} /> Also bring Ccboat to the
+          <input type="checkbox" checked={s.needsYouFront} onChange={(e) => settings.set({ needsYouFront: e.target.checked })} /> Also bring AgentBoat to the
           front
         </label>
         <label>

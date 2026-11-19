@@ -1,32 +1,38 @@
-//! "Answer prompts in Ccboat": the hook Ccboat adds to Claude Code's user settings.
+//! "Answer prompts in AgentBoat": the hook AgentBoat adds to Claude Code's user settings.
 //!
 //! Claude Code runs `PermissionRequest` hooks when it is about to ask you something (a tool's
-//! permission, an `AskUserQuestion`, a plan to approve). Ccboat's is an `http` hook: Claude Code
-//! POSTs the request to Ccboat on `127.0.0.1`, which shows it and replies with your answer. The
-//! terminal shows its own prompt meanwhile; whichever you answer first counts. When Ccboat isn't
+//! permission, an `AskUserQuestion`, a plan to approve). AgentBoat's is an `http` hook: Claude Code
+//! POSTs the request to AgentBoat on `127.0.0.1`, which shows it and replies with your answer. The
+//! terminal shows its own prompt meanwhile; whichever you answer first counts. When AgentBoat isn't
 //! running nothing answers, and Claude Code carries on as if there were no hook.
 //!
-//! The hook is the only thing Ccboat ever writes outside its own folder, and only when you turn it
+//! The hook is the only thing AgentBoat ever writes outside its own folder, and only when you turn it
 //! on or off. Its entry is recognised by its URL path; every other setting and hook is kept as it
 //! was. Each request must carry the token written into the entry, so nothing else can post
-//! prompts to Ccboat.
+//! prompts to AgentBoat.
 
 use serde_json::{Map, Value, json};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// The URL path that marks Ccboat's hook.
-pub const HOOK_PATH: &str = "/ccboat/permission";
+/// The URL path that marks AgentBoat's hook.
+pub const HOOK_PATH: &str = "/agentboat/permission";
 /// The header that carries the token.
-pub const TOKEN_HEADER: &str = "X-Ccboat-Token";
+pub const TOKEN_HEADER: &str = "X-AgentBoat-Token";
+/// The same, from when AgentBoat was called Ccboat (up to 0.5.1). A hook written then is still
+/// recognised and answered, and is rewritten to the new path on first start (see `migrate`).
+pub const LEGACY_HOOK_PATH: &str = "/ccboat/permission";
+pub const LEGACY_TOKEN_HEADER: &str = "X-Ccboat-Token";
 pub const DEFAULT_PORT: u16 = 47821;
-/// How long Claude Code waits for Ccboat (seconds). The terminal prompt is up all along, so this
+/// How long Claude Code waits for AgentBoat (seconds). The terminal prompt is up all along, so this
 /// only bounds how long a card can stay open.
 const TIMEOUT_SECS: u64 = 3600;
 
-/// The port Ccboat listens on: `CCBOAT_HOOK_PORT`, else the default.
+/// The port AgentBoat listens on: `AGENTBOAT_HOOK_PORT` (or the older `CCBOAT_HOOK_PORT`), else
+/// the default.
 pub fn port() -> u16 {
-    std::env::var("CCBOAT_HOOK_PORT")
+    std::env::var("AGENTBOAT_HOOK_PORT")
+        .or_else(|_| std::env::var("CCBOAT_HOOK_PORT"))
         .ok()
         .and_then(|p| p.parse().ok())
         .filter(|&p| p > 0)
@@ -42,10 +48,10 @@ fn is_ours(hook: &Value) -> bool {
         && hook
             .get("url")
             .and_then(Value::as_str)
-            .is_some_and(|u| u.contains(HOOK_PATH))
+            .is_some_and(|u| u.contains(HOOK_PATH) || u.contains(LEGACY_HOOK_PATH))
 }
 
-/// Ccboat's hook in these settings: its URL and token.
+/// AgentBoat's hook in these settings: its URL and token.
 pub fn find(settings: &Value) -> Option<(String, String)> {
     settings
         .pointer("/hooks/PermissionRequest")?
@@ -58,7 +64,7 @@ pub fn find(settings: &Value) -> Option<(String, String)> {
             let url = h.get("url").and_then(Value::as_str).unwrap_or("").to_string();
             let token = h
                 .get("headers")
-                .and_then(|hs| hs.get(TOKEN_HEADER))
+                .and_then(|hs| hs.get(TOKEN_HEADER).or_else(|| hs.get(LEGACY_TOKEN_HEADER)))
                 .and_then(Value::as_str)
                 .unwrap_or("")
                 .to_string();
@@ -66,7 +72,7 @@ pub fn find(settings: &Value) -> Option<(String, String)> {
         })
 }
 
-/// Remove Ccboat's hook; groups left empty go, and `hooks` too if nothing is left in it.
+/// Remove AgentBoat's hook; groups left empty go, and `hooks` too if nothing is left in it.
 /// Whether anything was removed.
 pub fn remove(settings: &mut Value) -> bool {
     let Some(hooks) = settings.get_mut("hooks").and_then(Value::as_object_mut) else {
@@ -99,7 +105,7 @@ pub fn remove(settings: &mut Value) -> bool {
     removed
 }
 
-/// Add Ccboat's hook (replacing an older one of its own), for every tool.
+/// Add AgentBoat's hook (replacing an older one of its own), for every tool.
 pub fn add(settings: &mut Value, port: u16, token: &str) -> Result<(), String> {
     remove(settings);
     let obj = settings
@@ -127,6 +133,22 @@ pub fn add(settings: &mut Value, port: u16, token: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// A hook written by Ccboat (the old URL path), rewritten as AgentBoat's with the same port and
+/// token. Whether anything changed.
+pub fn migrate_legacy(settings: &mut Value) -> Result<bool, String> {
+    let Some((url, token)) = find(settings) else { return Ok(false) };
+    if !url.contains(LEGACY_HOOK_PATH) {
+        return Ok(false);
+    }
+    let port = url
+        .strip_prefix("http://127.0.0.1:")
+        .and_then(|rest| rest.split('/').next())
+        .and_then(|p| p.parse().ok())
+        .unwrap_or_else(port);
+    add(settings, port, &token)?;
+    Ok(true)
+}
+
 /// The settings file as JSON (`{}` when there's none). A file that doesn't parse is an error, and
 /// is never written over.
 pub fn read(path: &Path) -> Result<Value, String> {
@@ -140,16 +162,16 @@ pub fn read(path: &Path) -> Result<Value, String> {
     }
 }
 
-/// Write the settings back: a copy of the original is kept once as `settings.json.ccboat-backup`,
+/// Write the settings back: a copy of the original is kept once as `settings.json.agentboat-backup`,
 /// and the new text replaces the file in one step, so Claude Code never reads half a file.
 pub fn write(path: &Path, settings: &Value) -> Result<(), String> {
-    let backup = path.with_extension("json.ccboat-backup");
+    let backup = path.with_extension("json.agentboat-backup");
     if path.is_file() && !backup.exists() {
         fs::copy(path, &backup).map_err(|e| format!("Couldn't back up your settings: {e}"))?;
     }
     let mut text = serde_json::to_string_pretty(settings).map_err(|e| e.to_string())?;
     text.push('\n');
-    let tmp = path.with_extension("json.ccboat-tmp");
+    let tmp = path.with_extension("json.agentboat-tmp");
     fs::write(&tmp, text).map_err(|e| format!("Couldn't write your settings: {e}"))?;
     fs::rename(&tmp, path).map_err(|e| {
         let _ = fs::remove_file(&tmp);
@@ -192,7 +214,7 @@ mod tests {
         add(&mut s, 47821, "tok").unwrap();
         assert_eq!(
             find(&s),
-            Some(("http://127.0.0.1:47821/ccboat/permission".into(), "tok".into()))
+            Some(("http://127.0.0.1:47821/agentboat/permission".into(), "tok".into()))
         );
         assert_eq!(s.pointer("/hooks/PermissionRequest").unwrap().as_array().unwrap().len(), 2);
         // Adding again replaces it rather than adding a second.
@@ -229,7 +251,7 @@ mod tests {
 
     #[test]
     fn refuses_settings_it_cant_parse() {
-        let dir = std::env::temp_dir().join(format!("ccboat-hooks-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("agentboat-hooks-{}", std::process::id()));
         fs::create_dir_all(&dir).unwrap();
         let p = dir.join("settings.json");
         fs::write(&p, "{ not json").unwrap();
@@ -238,6 +260,34 @@ mod tests {
         assert_eq!(read(&p).unwrap(), json!({"a":1}));
         assert_eq!(read(&dir.join("none.json")).unwrap(), json!({}));
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn rewrites_a_ccboat_hook_keeping_port_and_token() {
+        let mut s = json!({
+            "hooks": { "PermissionRequest": [
+                { "matcher": "Bash", "hooks": [{ "type": "command", "command": "mine.sh" }] },
+                { "matcher": "*", "hooks": [{
+                    "type": "http",
+                    "url": "http://127.0.0.1:47999/ccboat/permission",
+                    "timeout": 3600,
+                    "headers": { "X-Ccboat-Token": "0123456789abcdef0123" }
+                }] }
+            ] }
+        });
+        assert_eq!(find(&s).unwrap().1, "0123456789abcdef0123");
+        assert!(migrate_legacy(&mut s).unwrap());
+        assert_eq!(
+            find(&s),
+            Some(("http://127.0.0.1:47999/agentboat/permission".into(), "0123456789abcdef0123".into()))
+        );
+        let groups = s.pointer("/hooks/PermissionRequest").unwrap().as_array().unwrap();
+        assert_eq!(groups.len(), 2);
+        assert_eq!(groups[0]["hooks"][0]["command"], "mine.sh");
+        assert!(!s.to_string().contains("ccboat") && !s.to_string().contains("Ccboat"));
+        // Already AgentBoat's: nothing to do.
+        assert!(!migrate_legacy(&mut s).unwrap());
+        assert!(!migrate_legacy(&mut json!({})).unwrap());
     }
 
     #[test]

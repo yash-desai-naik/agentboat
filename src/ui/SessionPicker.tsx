@@ -76,7 +76,7 @@ export function SessionList({ onOpened, autoFocus }: { onOpened?: () => void; au
     >
       <input ref={input} className="sl-filter" placeholder="Filter by title, prompt, folder or branch" value={q} onChange={(e) => setQ(e.target.value)} spellCheck={false} />
       <div className="sl-scroll">
-        {!IN_TAURI && <p className="side-empty">Run Ccboat as the desktop app to see your sessions.</p>}
+        {!IN_TAURI && <p className="side-empty">Run AgentBoat as the desktop app to see your sessions.</p>}
         {list === null && IN_TAURI && <p className="side-empty">Looking for sessions…</p>}
         {list && shown.length === 0 && <p className="side-empty">No sessions match.</p>}
         {live.length > 0 && <div className="sl-group">Running now</div>}

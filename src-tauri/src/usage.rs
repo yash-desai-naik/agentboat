@@ -1,13 +1,13 @@
 //! The status bar's context window and usage limits, from Claude Code's status line input
-//! (`ccboat_core::statusline`), and turning that on or off.
+//! (`agentboat_core::statusline`), and turning that on or off.
 
-use ccboat_core::claude::claude_dir;
-use ccboat_core::{hooks, statusline};
+use agentboat_core::claude::claude_dir;
+use agentboat_core::{hooks, statusline};
 use serde::Serialize;
 use std::path::PathBuf;
 use tauri::Manager;
 
-/// Where the status line snapshots go: Ccboat's own data folder.
+/// Where the status line snapshots go: AgentBoat's own data folder.
 fn snapshot_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_local_data_dir()
@@ -46,7 +46,7 @@ pub fn limits_status() -> LimitsStatus {
     }
 }
 
-/// Turn "show usage limits" on (Ccboat's status line, wrapping yours) or off (yours back).
+/// Turn "show usage limits" on (AgentBoat's status line, wrapping yours) or off (yours back).
 #[tauri::command]
 pub fn limits_set(on: bool, app: tauri::AppHandle) -> Result<(), String> {
     let path = hooks::settings_path(&claude_dir().ok_or("No Claude Code folder.")?);

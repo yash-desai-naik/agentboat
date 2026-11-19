@@ -4,7 +4,7 @@ import { openInClaudeCode } from "../lib/attention";
 import { copyText, fullPath, openInEditor, relativePath, useEditors } from "../lib/editors";
 
 /**
- * Ccboat's right-click menu, in place of the browser's. Anything that shows a file or folder
+ * AgentBoat's right-click menu, in place of the browser's. Anything that shows a file or folder
  * carries it as `data-path` (with `data-line` for a line in it, `data-session` and `data-cwd` for a
  * session), and a right-click on it offers to copy the path and to open it in Claude Code or an
  * installed editor. Selected text can be copied anywhere.

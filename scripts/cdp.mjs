@@ -1,5 +1,5 @@
-// Drive a running Ccboat through WebView2's DevTools protocol (development only).
-// Start Ccboat with:  $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9222"
+// Drive a running AgentBoat through WebView2's DevTools protocol (development only).
+// Start AgentBoat with:  $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9222"
 // CDP_PORT=<port> picks another port (e.g. when Fileboat or Tableboat already uses 9222).
 // Usage: node scripts/cdp.mjs <steps.json>   (steps: [{eval}|{click:[x,y],double?}|{key}|{text}|{shot:path}|{cdp,params}|{wait:ms}])
 import { readFileSync, writeFileSync } from "node:fs";

@@ -28,7 +28,7 @@ export interface Settings {
   skippedUpdate: string;
   /** Needs you: open the panel when a session starts waiting on you. */
   needsYouOpen: boolean;
-  /** ...and bring Ccboat to the front. */
+  /** ...and bring AgentBoat to the front. */
   needsYouFront: boolean;
   /** List sessions that finish their turn, not only ones waiting on a prompt. */
   needsYouDone: boolean;

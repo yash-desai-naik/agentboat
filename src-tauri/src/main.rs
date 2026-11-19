@@ -12,13 +12,16 @@ mod watch;
 use tauri::Manager;
 
 fn main() {
-    // Run as Claude Code's status line (see ccboat_core::statusline): save its input, run the
+    // Run as Claude Code's status line (see agentboat_core::statusline): save its input, run the
     // status line it replaced, and exit. No window, no single-instance check.
     let mut args = std::env::args_os().skip(1);
-    if args.next().is_some_and(|a| a == ccboat_core::statusline::FLAG) {
+    if args.next().is_some_and(|a| a == agentboat_core::statusline::FLAG) {
         let dir = args.next().map(std::path::PathBuf::from).unwrap_or_default();
-        std::process::exit(ccboat_core::statusline::run(&dir));
+        std::process::exit(agentboat_core::statusline::run(&dir));
     }
+
+    // Ccboat's data and Claude Code settings, once, before the WebView opens its data folder.
+    agentboat_core::migrate::run();
 
     tauri::Builder::default()
         // One window is enough: a second launch shows the running one.
@@ -66,5 +69,5 @@ fn main() {
             usage::limits_set,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Ccboat");
+        .expect("error while running AgentBoat");
 }

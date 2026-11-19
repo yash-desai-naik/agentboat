@@ -1,4 +1,4 @@
-# Developing Ccboat
+# Developing AgentBoat
 
 All commands run from the project folder (Rust's `cargo` must be on the PATH).
 
@@ -8,10 +8,10 @@ All commands run from the project folder (Rust's `cargo` must be on the PATH).
 npx tauri dev
 ```
 
-- The dev server uses port **1422**, so Ccboat can run in dev next to Fileboat or Tableboat (1420)
+- The dev server uses port **1422**, so AgentBoat can run in dev next to Fileboat or Tableboat (1420)
   and Agentsboat (1421).
 - Developer tools on Windows: start with WebView2's remote debugging on a port nothing else uses,
-  and check the target is Ccboat before driving it:
+  and check the target is AgentBoat before driving it:
 
   ```powershell
   $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9488"; npx tauri dev
@@ -22,16 +22,16 @@ npx tauri dev
 - See a transcript the way the app reads it, without a window:
   `cd src-tauri && cargo run --release --example dump -- <path to .jsonl> [steps to print]`
   prints the step counts by kind, the last steps, and how long the read took.
-- Tests: `cd src-tauri && cargo test --lib` (and `cargo test --bin ccboat` for the desktop side:
+- Tests: `cd src-tauri && cargo test --lib` (and `cargo test --bin agentboat` for the desktop side:
   Needs you, Open in Claude Code); the UI: `npm run typecheck`.
 - Try **Needs you** without touching your own Claude Code settings: start the dev build with
-  `CLAUDE_CONFIG_DIR` pointing at a scratch folder and `--config '{"identifier":"app.ccboat.dev"}'`
-  (so it runs beside an installed Ccboat), turn it on there, then run
+  `CLAUDE_CONFIG_DIR` pointing at a scratch folder and `--config '{"identifier":"app.agentboat.dev"}'`
+  (so it runs beside an installed AgentBoat), turn it on there, then run
   `claude -p "<a prompt that fetches a page>" --settings <scratch>/settings.json` and answer the card.
 
 ## How a transcript becomes the IDE
 
-Rust, `src-tauri/src/` (the window-free core `ccboat_core`, plus `main.rs` and `watch.rs`):
+Rust, `src-tauri/src/` (the window-free core `agentboat_core`, plus `main.rs` and `watch.rs`):
 
 - `claude.rs`: the data folder, the session registry, finding transcripts (from Agentsboat).
 - `sessions.rs`: the session list (`limit` most recent, and how many older ones exist, for
@@ -69,12 +69,12 @@ Rust, `src-tauri/src/` (the window-free core `ccboat_core`, plus `main.rs` and `
   second and tied to the `Agent` step that started them (`meta.json`'s `toolUseId`, or the
   result's `agentId`). Status comes from the registry; a transcript written in the last 30 s but
   not registered (`claude -p`, SDK) counts as active.
-- `hooks.rs`: Ccboat's `PermissionRequest` hook in Claude Code's `settings.json`: found by its URL
-  path (`/ccboat/permission`), added and removed without touching anything else (a file that
+- `hooks.rs`: AgentBoat's `PermissionRequest` hook in Claude Code's `settings.json`: found by its URL
+  path (`/agentboat/permission`), added and removed without touching anything else (a file that
   doesn't parse is never written over; the original is backed up once; writes replace the file in
   one step), and the token it carries.
 - `attention.rs` (desktop side): **Needs you**. A plain `std::net` HTTP/1.1 listener on
-  `127.0.0.1:47821` (`CCBOAT_HOOK_PORT` moves it) takes each hook POST (token checked, `Origin`
+  `127.0.0.1:47821` (`AGENTBOAT_HOOK_PORT` moves it) takes each hook POST (token checked, `Origin`
   refused), shows it as a card (`ccb:attention`) and holds the connection until the UI answers
   (`attention_answer`), Claude Code hangs up, or the registry shows the session moved on from
   `waiting` (answered in the terminal); then it replies with the decision, or `{}` for none. A
@@ -87,10 +87,10 @@ Rust, `src-tauri/src/` (the window-free core `ccboat_core`, plus `main.rs` and `
   (`WindowsTerminal.exe`, `Code.exe`, a console); a finished one runs
   `claude --resume <id>` in a new Windows Terminal tab (or a new PowerShell console) in its folder.
   Only a validated session id goes on the command line.
-- `statusline.rs`: **Show usage limits**. Puts `"<ccboat.exe>" --statusline "<data>/statusline"` in
+- `statusline.rs`: **Show usage limits**. Puts `"<agentboat.exe>" --statusline "<data>/statusline"` in
   Claude Code's `statusLine` (yours kept in `original.json` there, with its `padding` and
   `refreshInterval` carried over, and restored when turned off). Run that way (`main.rs` checks the
-  flag before Tauri starts, so no window and no single-instance check), Ccboat saves stdin as
+  flag before Tauri starts, so no window and no single-instance check), AgentBoat saves stdin as
   `<session id>.json` and runs your original command with it through the shell Claude Code uses
   (Git Bash on Windows when installed, else PowerShell; `sh` elsewhere), passing its output and exit
   code back. `read` gives the open session's window size, the newest `rate_limits` of any session
@@ -159,7 +159,7 @@ from the source at its tag.
 
    ```sh
    git commit -am "chore(release): x.y.z"
-   git tag -a vx.y.z -m "Ccboat x.y.z"
+   git tag -a vx.y.z -m "AgentBoat x.y.z"
    git push origin main vx.y.z
    ```
 
@@ -175,20 +175,21 @@ signature. Drafts and pre-releases are never offered. macOS isn't built yet; whe
 
 ### The updater key
 
-- Every update must be signed with Ccboat's updater key; installed copies check it against the
+- Every update must be signed with AgentBoat's updater key (still the one made for Ccboat, hence the
+  file name: Ccboat copies must accept the AgentBoat installer); installed copies check it against the
   public key in `src-tauri/tauri.conf.json` (`plugins.updater.pubkey`).
 - Private key: `~/.tauri/ccboat-updater.key` on the maintainer's PC (no password), and the GitHub
   repository secret `TAURI_SIGNING_PRIVATE_KEY` (its contents) for the Release workflow:
 
   ```sh
-  gh secret set TAURI_SIGNING_PRIVATE_KEY -R yash-desai-naik/ccboat < ~/.tauri/ccboat-updater.key
+  gh secret set TAURI_SIGNING_PRIVATE_KEY -R yash-desai-naik/agentboat < ~/.tauri/ccboat-updater.key
   ```
 
 - **Keep a backup of the key** (e.g. in a password manager). Without it, no new version can be signed
   for existing installs.
 - Local builds don't need it. A signed one, as the workflow makes:
   `TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/ccboat-updater.key)" TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" npx tauri build --config src-tauri/tauri.release.conf.json`.
-- Test the updater against a local feed: `CCBOAT_UPDATE_URL=http://127.0.0.1:8765/latest.json`
+- Test the updater against a local feed: `AGENTBOAT_UPDATE_URL=http://127.0.0.1:8765/latest.json`
   points a build at another feed. Tauri only accepts https feeds, so a local test build needs a
   config with `"plugins": { "updater": { "dangerousInsecureTransportProtocol": true } }` passed with
   `--config` (never in a release). The feed's `version` must match the version the installer was

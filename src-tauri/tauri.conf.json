@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Ccboat",
-  "version": "0.5.1",
-  "identifier": "app.ccboat",
+  "productName": "AgentBoat",
+  "version": "0.6.0",
+  "identifier": "app.agentboat",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1422",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Ccboat",
+        "title": "AgentBoat",
         "width": 1440,
         "height": 880,
         "minWidth": 900,
@@ -56,17 +56,17 @@
       "minimumSystemVersion": "11.0",
       "signingIdentity": "-"
     },
-    "publisher": "Ccboat",
+    "publisher": "AgentBoat",
     "copyright": "Copyright (c) 2026 Yash Desai. MIT License.",
     "category": "DeveloperTool",
     "shortDescription": "Watch a Claude Code session as an IDE",
-    "longDescription": "Ccboat: a read-only, IDE-style view of a Claude Code session, live as it works or replayed step by step."
+    "longDescription": "AgentBoat: a read-only, IDE-style view of a Claude Code session, live as it works or replayed step by step."
   },
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEExNjMzMjgxREMxMjE2NjEKUldSaEZoTGNnVEpqb2ZMZlQ1NUlsZHp1aHNBbjQrUGFPdUhBMERQdWp6TGwwdkg4TUJQNlFuNkIK",
       "endpoints": [
-        "https://github.com/yash-desai-naik/ccboat/releases/latest/download/latest.json"
+        "https://github.com/yash-desai-naik/agentboat/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"

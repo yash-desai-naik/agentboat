@@ -189,7 +189,7 @@ function OpenInClaudeCode({ id, cwd, live }: { id: string; cwd: string | null; l
   );
 }
 
-/** "Ccboat ▾": the app's menu (updates, About, GitHub). A dot marks an update on offer. */
+/** "AgentBoat ▾": the app's menu (updates, About, GitHub). A dot marks an update on offer. */
 function AppMenu({ onAbout, onHook, onLimits }: { onAbout: () => void; onHook: () => void; onLimits: () => void }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -211,9 +211,9 @@ function AppMenu({ onAbout, onHook, onLimits }: { onAbout: () => void; onHook: (
   };
   return (
     <div className="app-menu-wrap" ref={box}>
-      <button className={`brand${open ? " open" : ""}`} onClick={() => setOpen(!open)} title="Ccboat menu" aria-haspopup="menu" aria-expanded={open}>
+      <button className={`brand${open ? " open" : ""}`} onClick={() => setOpen(!open)} title="AgentBoat menu" aria-haspopup="menu" aria-expanded={open}>
         <img src="/icon.svg" width={16} height={16} alt="" />
-        <span>Ccboat</span>
+        <span>AgentBoat</span>
         {update.info && <span className="brand-dot" title={`Version ${update.info.version} is available`} />}
         <Chevron size={10} open />
       </button>
@@ -229,17 +229,17 @@ function AppMenu({ onAbout, onHook, onLimits }: { onAbout: () => void; onHook: (
             </button>
           )}
           <button role="menuitem" onClick={pick(onHook)}>
-            Answer prompts in Ccboat…
+            Answer prompts in AgentBoat…
           </button>
           <button role="menuitem" onClick={pick(onLimits)}>
             Show usage limits…
           </button>
           <button role="menuitem" onClick={pick(onAbout)}>
-            About Ccboat
+            About AgentBoat
           </button>
           <div className="app-menu-sep" />
           <button role="menuitem" onClick={pick(() => void invoke("open_repo_page").catch(() => {}))}>
-            Ccboat on GitHub
+            AgentBoat on GitHub
           </button>
           <button role="menuitem" onClick={pick(() => void invoke("open_releases_page").catch(() => {}))}>
             Releases and changelog

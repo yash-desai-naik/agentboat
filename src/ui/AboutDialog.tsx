@@ -12,7 +12,7 @@ interface AppPaths {
   claudeDir: string;
 }
 
-/** Version, build, where Ccboat keeps things, and updates. */
+/** Version, build, where AgentBoat keeps things, and updates. */
 export function AboutDialog({ onClose }: { onClose: () => void }) {
   const [version, setVersion] = useState<string | null>(null);
   const [tauri, setTauri] = useState("?");
@@ -51,7 +51,7 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog
-      title="About Ccboat"
+      title="About AgentBoat"
       onClose={onClose}
       width={580}
       footer={
@@ -80,7 +80,7 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
       <div className="about-head">
         <img src="/icon.svg" width={48} height={48} alt="" />
         <div>
-          <div className="about-name">Ccboat {version ?? ""}</div>
+          <div className="about-name">AgentBoat {version ?? ""}</div>
           <div className="dim small">Watch a Claude Code session as a read-only IDE, live or replayed step by step.</div>
           <div className="dim small">MIT License. It only reads; the one thing it fetches is the update check below.</div>
           <div className="about-update">

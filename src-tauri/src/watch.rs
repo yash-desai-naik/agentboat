@@ -5,10 +5,10 @@
 //! new steps, the earlier steps whose results arrived, and the session head. Nothing is sent
 //! when nothing changed. Whether the session is still running is checked every second.
 
-use ccboat_core::claude::claude_dir;
-use ccboat_core::sessions::{SessionEntry, SessionList};
-use ccboat_core::timeline::Step;
-use ccboat_core::viewer::{Head, Viewer};
+use agentboat_core::claude::claude_dir;
+use agentboat_core::sessions::{SessionEntry, SessionList};
+use agentboat_core::timeline::Step;
+use agentboat_core::viewer::{Head, Viewer};
 use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};

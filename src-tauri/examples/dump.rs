@@ -1,7 +1,7 @@
 //! Reads a transcript the way the app does and prints a summary of its timeline.
 //! `cargo run --release --example dump -- <path to .jsonl> [steps to print]`
 
-use ccboat_core::viewer::Viewer;
+use agentboat_core::viewer::Viewer;
 use std::time::Instant;
 
 fn main() {

@@ -453,10 +453,10 @@ mod tests {
 
     #[test]
     fn heredoc_writes_with_content() {
-        let cmd = "cd /d/projects/ccboat && cat > package.json <<'EOF'\n{\n  \"name\": \"x\"\n}\nEOF\ncat > vite.config.ts <<'EOF'\nexport default 1;\nEOF\nnpm install";
-        let got = parse(cmd, "D:\\projects\\ccboat");
+        let cmd = "cd /d/projects/agentboat && cat > package.json <<'EOF'\n{\n  \"name\": \"x\"\n}\nEOF\ncat > vite.config.ts <<'EOF'\nexport default 1;\nEOF\nnpm install";
+        let got = parse(cmd, "D:\\projects\\agentboat");
         if cfg!(windows) {
-            assert_eq!(got[0].path, "D:\\projects\\ccboat\\package.json");
+            assert_eq!(got[0].path, "D:\\projects\\agentboat\\package.json");
         }
         assert_eq!(got.len(), 2);
         assert_eq!(got[0].op, "write");
@@ -483,8 +483,8 @@ mod tests {
     #[test]
     fn copies_moves_deletes() {
         assert_eq!(
-            ops("cp ../agentsboat/.gitignore . && cp ../a/time.rs src-tauri/src/ && cp -r ../a/icons .", "/proj/ccboat"),
-            [("/proj/ccboat/.gitignore".to_string(), "write"), ("/proj/ccboat/src-tauri/src/time.rs".to_string(), "write")]
+            ops("cp ../agentsboat/.gitignore . && cp ../a/time.rs src-tauri/src/ && cp -r ../a/icons .", "/proj/agentboat"),
+            [("/proj/agentboat/.gitignore".to_string(), "write"), ("/proj/agentboat/src-tauri/src/time.rs".to_string(), "write")]
         );
         assert_eq!(
             ops("mv old.rs new.rs; rm -f tmp.txt; rm -rf dist", "/proj"),

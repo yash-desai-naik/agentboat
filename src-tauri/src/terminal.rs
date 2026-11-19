@@ -8,8 +8,8 @@
 //! Only the session id (checked to be one) and its folder (checked to exist) go into the command
 //! line; nothing else from a transcript is ever run.
 
-use ccboat_core::claude::claude_dir;
-use ccboat_core::sessions::live_sessions;
+use agentboat_core::claude::claude_dir;
+use agentboat_core::sessions::live_sessions;
 use std::path::{Path, PathBuf};
 
 /// What happened, for the UI: `focused` (its window came to the front) or `opened` (a new
@@ -95,7 +95,7 @@ fn resume_in_terminal(id: &str, cwd: &str) -> Result<(), String> {
         .map_err(|e| format!("Couldn't open a terminal: {e}"))
 }
 
-/// Bring the window of the nearest ancestor of `pid` that has one to the front. Ccboat is the
+/// Bring the window of the nearest ancestor of `pid` that has one to the front. AgentBoat is the
 /// foreground app when this runs (you just clicked), so Windows lets it hand the focus on.
 #[cfg(windows)]
 fn focus_host_window(pid: u32) -> bool {

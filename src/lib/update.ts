@@ -11,7 +11,7 @@ import { IN_TAURI } from "./tauri";
  * whenever you press "Check for updates".
  */
 
-/** A newer Ccboat release. */
+/** A newer AgentBoat release. */
 export interface UpdateInfo {
   version: string;
   current: string;
@@ -102,7 +102,7 @@ export async function checkForUpdates(): Promise<UpdateInfo | null> {
   }
 }
 
-/** Download, verify and install; Ccboat starts again on the new version. */
+/** Download, verify and install; AgentBoat starts again on the new version. */
 export async function installUpdate() {
   set({ phase: "downloading", downloaded: 0, total: null, error: null, noticeOpen: true });
   try {

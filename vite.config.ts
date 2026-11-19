@@ -19,7 +19,7 @@ function buildInfo() {
 }
 
 // Tauri expects a fixed dev port and serves the built files from ../dist.
-// 1422, so Ccboat can run in dev next to Fileboat/Tableboat (1420) and Agentsboat (1421).
+// 1422, so AgentBoat can run in dev next to Fileboat/Tableboat (1420) and Agentsboat (1421).
 export default defineConfig(({ command }) => ({
   plugins: [react()],
   clearScreen: false,

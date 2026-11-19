@@ -1,9 +1,9 @@
-//! "Show usage limits": what Claude Code tells its status line, kept for Ccboat.
+//! "Show usage limits": what Claude Code tells its status line, kept for AgentBoat.
 //!
-//! Claude Code passes its status line command, on stdin, what Ccboat can't read anywhere else: the
+//! Claude Code passes its status line command, on stdin, what AgentBoat can't read anywhere else: the
 //! context window's size and how full it is, and the account's 5-hour and 7-day usage with when
-//! each resets. With this on, Claude Code's `statusLine` runs Ccboat itself
-//! (`ccboat --statusline <dir>`): it saves that JSON as `<dir>/<session id>.json`, then runs the
+//! each resets. With this on, Claude Code's `statusLine` runs AgentBoat itself
+//! (`agentboat --statusline <dir>`): it saves that JSON as `<dir>/<session id>.json`, then runs the
 //! status line you had before with the same input and passes its output back, so the terminal
 //! shows what it always did.
 //!
@@ -17,7 +17,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-/// The flag that runs Ccboat as the status line.
+/// The flag that runs AgentBoat as the status line.
 pub const FLAG: &str = "--statusline";
 const ORIGINAL: &str = "original.json";
 
@@ -25,10 +25,26 @@ fn is_ours(status_line: &Value) -> bool {
     status_line
         .get("command")
         .and_then(Value::as_str)
-        .is_some_and(|c| c.contains(FLAG) && c.to_ascii_lowercase().contains("ccboat"))
+        .is_some_and(|c| {
+            let lc = c.to_ascii_lowercase();
+            c.contains(FLAG) && (lc.contains("agentboat") || lc.contains("ccboat"))
+        })
 }
 
-/// Whether Ccboat's status line is the one set.
+/// Whether the status line set is Ccboat's (AgentBoat before the rename): it runs a program the
+/// move to AgentBoat uninstalls.
+pub fn installed_legacy(settings: &Value) -> bool {
+    settings
+        .get("statusLine")
+        .and_then(|s| s.get("command"))
+        .and_then(Value::as_str)
+        .is_some_and(|c| {
+            let lc = c.to_ascii_lowercase();
+            c.contains(FLAG) && lc.contains("ccboat") && !lc.contains("agentboat")
+        })
+}
+
+/// Whether AgentBoat's status line is the one set.
 pub fn installed(settings: &Value) -> bool {
     settings.get("statusLine").is_some_and(is_ours)
 }
@@ -43,7 +59,7 @@ pub fn command(exe: &Path, dir: &Path) -> String {
     format!("{} {FLAG} {}", quoted(exe), quoted(dir))
 }
 
-/// Put Ccboat's status line in, keeping yours in `dir` to run and to restore. Its `padding` and
+/// Put AgentBoat's status line in, keeping yours in `dir` to run and to restore. Its `padding` and
 /// `refreshInterval` carry over.
 pub fn add(settings: &mut Value, exe: &Path, dir: &Path) -> Result<(), String> {
     let obj = settings
@@ -67,7 +83,7 @@ pub fn add(settings: &mut Value, exe: &Path, dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
-/// Take Ccboat's status line out and put yours back (or none, if you had none).
+/// Take AgentBoat's status line out and put yours back (or none, if you had none).
 pub fn remove(settings: &mut Value, dir: &Path) -> bool {
     if !installed(settings) {
         return false;
@@ -93,7 +109,7 @@ fn read_original(dir: &Path) -> Option<Value> {
 
 // ---------- the status line itself ----------
 
-/// Run as Claude Code's status line: save stdin for Ccboat, then run the original status line
+/// Run as Claude Code's status line: save stdin for AgentBoat, then run the original status line
 /// with it. Returns the exit code.
 pub fn run(dir: &Path) -> i32 {
     let mut raw = Vec::new();
@@ -119,7 +135,7 @@ fn save(dir: &Path, raw: &[u8]) {
     if fs::create_dir_all(dir).is_err() {
         return;
     }
-    // Whole files only: Ccboat may read at any moment.
+    // Whole files only: AgentBoat may read at any moment.
     let tmp = dir.join(format!("{id}.json.tmp"));
     if fs::write(&tmp, raw).is_ok() && fs::rename(&tmp, dir.join(format!("{id}.json"))).is_err() {
         let _ = fs::remove_file(&tmp);
@@ -294,7 +310,7 @@ mod tests {
     use super::*;
 
     fn tmp(name: &str) -> PathBuf {
-        let d = std::env::temp_dir().join(format!("ccboat-sl-{name}-{}", std::process::id()));
+        let d = std::env::temp_dir().join(format!("agentboat-sl-{name}-{}", std::process::id()));
         let _ = fs::remove_dir_all(&d);
         fs::create_dir_all(&d).unwrap();
         d
@@ -303,13 +319,13 @@ mod tests {
     #[test]
     fn swaps_in_and_restores_your_status_line() {
         let dir = tmp("swap");
-        let exe = Path::new(r"C:\Users\Jane Doe\AppData\Local\Ccboat\ccboat.exe");
+        let exe = Path::new(r"C:\Users\Jane Doe\AppData\Local\AgentBoat\agentboat.exe");
         let mine = json!({ "type": "command", "command": "bash ~/.claude/sl.sh", "padding": 0 });
         let mut s = json!({ "theme": "dark", "statusLine": mine.clone() });
         add(&mut s, exe, &dir).unwrap();
         assert!(installed(&s));
         let cmd = s["statusLine"]["command"].as_str().unwrap();
-        assert!(cmd.starts_with("\"C:/Users/Jane Doe/AppData/Local/Ccboat/ccboat.exe\" --statusline \""));
+        assert!(cmd.starts_with("\"C:/Users/Jane Doe/AppData/Local/AgentBoat/agentboat.exe\" --statusline \""));
         assert_eq!(s["statusLine"]["padding"], 0);
         // Turning it on twice doesn't lose yours.
         add(&mut s, exe, &dir).unwrap();
@@ -320,10 +336,31 @@ mod tests {
     }
 
     #[test]
+    fn a_ccboat_status_line_is_taken_over_keeping_yours() {
+        let dir = tmp("legacy");
+        let mine = json!({ "type": "command", "command": "bash ~/.claude/sl.sh" });
+        fs::write(dir.join(ORIGINAL), mine.to_string()).unwrap();
+        let mut s = json!({ "statusLine": {
+            "type": "command",
+            "command": "\"C:/Users/Jane/AppData/Local/Ccboat/ccboat.exe\" --statusline \"C:/Users/Jane/AppData/Local/app.ccboat/statusline\"",
+            "padding": 1
+        } });
+        assert!(installed(&s) && installed_legacy(&s));
+        add(&mut s, Path::new(r"C:\Users\Jane\AppData\Local\AgentBoat\agentboat.exe"), &dir).unwrap();
+        assert!(installed(&s) && !installed_legacy(&s));
+        assert!(s["statusLine"]["command"].as_str().unwrap().contains("AgentBoat/agentboat.exe"));
+        assert_eq!(s["statusLine"]["padding"], 1);
+        // The status line you had before Ccboat's is still the one put back.
+        assert!(remove(&mut s, &dir));
+        assert_eq!(s, json!({ "statusLine": mine }));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn none_before_means_none_after() {
         let dir = tmp("none");
         let mut s = json!({});
-        add(&mut s, Path::new("/opt/ccboat"), &dir).unwrap();
+        add(&mut s, Path::new("/opt/agentboat"), &dir).unwrap();
         assert!(remove(&mut s, &dir));
         assert_eq!(s, json!({}));
         let _ = fs::remove_dir_all(&dir);
