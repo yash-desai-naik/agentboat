@@ -3,14 +3,57 @@
 > **Formerly Ccboat.** Same app, new name, from version 0.6.0. Using Ccboat? It updates itself to
 > AgentBoat and brings your settings along: see [Coming from Ccboat](#coming-from-ccboat).
 
-Watch a **Claude Code session as an IDE**: files open and change in the editor, commands run in
-the terminal, commits and pushes land in Source Control, live as Claude works or replayed step by
-step afterwards. **Read-only**: it never changes anything.
+### Your Claude Code sessions, as an IDE you can watch, live or in flashback.
 
-Built with [Tauri 2](https://tauri.app) (Rust, and the WebView your system already has), on the same
-foundations as its siblings [Fileboat](https://github.com/yash-desai-naik/fileboat),
-[Tableboat](https://github.com/yash-desai-naik/tableboat) and Agentsboat. No Electron, no Node.js at
-runtime.
+You've got eight Claude Code terminals open, three of them are waiting on you, one just pushed to
+`main`, and you have no idea which one burned through your 5-hour limit. AgentBoat is the screen
+you glance at.
+
+It turns each Claude Code session into a full IDE you can watch: files open in the editor and edits
+are **typed out in front of you**, commands run in a real-looking terminal, web pages Claude reads
+open in a browser tab, MCP calls line up like DevTools' Network panel, and commits and pushes land
+in Source Control. Follow it **live** as Claude works, or **rewind and replay** any session step by
+step afterwards. And it's **read-only**: it watches, it never touches your code.
+
+## Built for vibe coders running a fleet
+
+**Dozens of sessions, one window.** Running sessions are listed first. The **Needs you** bell
+collects every session that's waiting on you, from all of them at once. Turn on **Answer prompts in
+AgentBoat** and you approve permissions, answer Claude's questions and sign off on plans right
+there, without hunting for the right terminal. The taskbar flashes when something new needs you.
+**Open in Claude Code** jumps to that session's terminal, or resumes a finished one.
+
+**Tokenmaxing, with the meter in view.** The status bar shows how full the context window is, the
+model and its reasoning effort, and (with **Show usage limits** on) your 5-hour and weekly usage
+with when each resets. You see the wall coming before you hit it.
+
+**Flashback: what did Claude do while you were away?** Every session is a timeline. Scrub it, step
+through it, jump prompt to prompt (Shift + ← / →), or hit Space and watch it replay from 0.1× to 16×
+with the session's real pauses. Came back from lunch to 40 changed files? Watch how they got there.
+
+**Team view for agent swarms.** Subagents get their own terminals and their own marks on the
+timeline. Ctrl+Shift+T shows every agent's screen at once.
+
+**Review before you trust.** Every edit is an inline diff, the Explorer marks each file Read,
+Modified, Added or Deleted (even ones written from the shell with `sed -i` or a heredoc), and Source
+Control lists the commits, pushes and branches, plus the commits not pushed yet.
+
+## Learn to code by watching an agent work
+
+New to coding, or new to a codebase? Replay a session at slow speed and watch how a capable agent
+actually works: which files it reads first and the exact lines it looks at, what it greps for, how
+it plans with a task list, which commands it runs, how it reads a failing test (failures show as red
+marks on the timeline) and what it changes to fix it. It's pair programming you can pause, rewind
+and replay as many times as you like.
+
+## Light, local, private
+
+- **Read-only.** It reads Claude Code's transcripts in `~/.claude` and never changes your code.
+- **Local.** Nothing leaves your machine; the only network call is checking GitHub for updates.
+- **Light.** About 200 MB of memory and a few percent of one core while following a live session,
+  built with [Tauri 2](https://tauri.app) (Rust and your system's WebView): no Electron, no Node.js
+  at runtime. A sibling of [Fileboat](https://github.com/yash-desai-naik/fileboat) and
+  [Tableboat](https://github.com/yash-desai-naik/tableboat).
 
 ## Download
 
@@ -43,7 +86,7 @@ You don't need to do anything:
 Prefer to do it by hand? Install AgentBoat from the
 [Releases page](https://github.com/yash-desai-naik/agentboat/releases/latest) and start it: it does
 the same. A taskbar pin to Ccboat stops working once Ccboat is removed; pin AgentBoat instead.
-Ccboat's own data folder (`%LOCALAPPDATA%app.ccboat`) is left in place; delete it once you're happy.
+Ccboat's own data folder (`%LOCALAPPDATA%\app.ccboat`) is left in place; delete it once you're happy.
 
 ## What you see
 
