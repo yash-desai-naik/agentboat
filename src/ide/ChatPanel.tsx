@@ -149,7 +149,12 @@ const ChatItem = memo(function ChatItem({
       const took = step.end && step.end > step.ts ? duration(step.end - step.ts) : null;
       const agentInfo = agentSteps !== null ? `${agentSteps} step${agentSteps === 1 ? "" : "s"}` : null;
       return (
-        <div className={`${cls} tool cat-${step.cat}${step.agent > 0 ? " sub" : ""}`} onClick={() => seek(step.i)} title={step.label}>
+        <div
+          className={`${cls} tool cat-${step.cat}${step.agent > 0 ? " sub" : ""}`}
+          onClick={() => seek(step.i)}
+          title={step.label}
+          data-path={step.path ?? undefined}
+        >
           <span className={`state ${step.state}`}>
             <StepIcon cat={step.cat} kind={step.kind} size={13} />
           </span>

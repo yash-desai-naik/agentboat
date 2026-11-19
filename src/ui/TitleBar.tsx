@@ -7,6 +7,7 @@ import { settings, useSettings } from "../lib/settings";
 import { Chevron, PanelBottom, PanelLeft, PanelRight, Terminal, Timeline } from "./Icons";
 import { NeedsYouButton } from "./NeedsYou";
 import { openInClaudeCode } from "../lib/attention";
+import { copyText, openInEditor, useEditors } from "../lib/editors";
 
 export function TitleBar({
   onPick,
@@ -43,7 +44,14 @@ export function TitleBar({
     <header className={IS_MAC ? "titlebar mac" : "titlebar"} data-tauri-drag-region>
       <AppMenu onAbout={onAbout} onHook={onHook} onLimits={onLimits} />
       <div className="tb-fill" data-tauri-drag-region />
-      <button className="session-switch" onClick={onPick} title="Open another session (Ctrl+O)">
+      <button
+        className="session-switch"
+        onClick={onPick}
+        title="Open another session (Ctrl+O)"
+        data-path={head?.meta.cwd ?? undefined}
+        data-session={head?.id}
+        data-cwd={head?.meta.cwd ?? undefined}
+      >
         {head && <span className={`st-dot s-${head.status}`} />}
         {folder && <span className="ss-folder">{folder}</span>}
         {folder && <span className="ss-sep">—</span>}
@@ -99,28 +107,83 @@ export function TitleBar({
   );
 }
 
-/** Take you to the open session in its terminal: its window if running, else resumed in a new one. */
+/**
+ * Open the session: in Claude Code (its terminal if running, else resumed in a new one), or its
+ * folder in an installed editor (the ▾), which also copies the folder's path.
+ */
 function OpenInClaudeCode({ id, cwd, live }: { id: string; cwd: string | null; live: boolean }) {
   const [note, setNote] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const editors = useEditors();
   useEffect(() => {
     if (!note) return;
     const t = window.setTimeout(() => setNote(null), 4000);
     return () => window.clearTimeout(t);
   }, [note]);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("mousedown", away);
+    window.addEventListener("keydown", esc);
+    return () => {
+      window.removeEventListener("mousedown", away);
+      window.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+  const claude = () =>
+    void openInClaudeCode(id, cwd)
+      .then((how) => setNote(how === "focused" ? "Its terminal is in front" : "Resumed in a new terminal"))
+      .catch((e) => setNote(String(e)));
+  const pick = (f: () => void) => () => {
+    setOpen(false);
+    f();
+  };
   return (
-    <div className="occ-wrap">
-      <button
-        className="occ-btn"
-        title={live ? "Open in Claude Code: bring its terminal to the front" : "Open in Claude Code: resume it in a new terminal (claude --resume)"}
-        onClick={() =>
-          void openInClaudeCode(id, cwd)
-            .then((how) => setNote(how === "focused" ? "Its terminal is in front" : "Resumed in a new terminal"))
-            .catch((e) => setNote(String(e)))
-        }
-      >
-        <Terminal size={14} />
-        <span>Open in Claude Code</span>
-      </button>
+    <div className="occ-wrap" ref={box}>
+      <div className="occ-split">
+        <button
+          className="occ-btn"
+          title={live ? "Open in Claude Code: bring its terminal to the front" : "Open in Claude Code: resume it in a new terminal (claude --resume)"}
+          onClick={claude}
+        >
+          <Terminal size={14} />
+          <span>Open in Claude Code</span>
+        </button>
+        <button className="occ-more" title="Open in…" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <Chevron size={10} open />
+        </button>
+      </div>
+      {open && (
+        <div className="app-menu occ-menu" role="menu">
+          <button role="menuitem" onClick={pick(claude)}>
+            Claude Code <span className="ctx-dim">{live ? "its terminal" : "resume"}</span>
+          </button>
+          {cwd &&
+            editors.map((ed) => (
+              <button
+                key={ed.id}
+                role="menuitem"
+                onClick={pick(() =>
+                  void openInEditor(ed.id, cwd, null, null)
+                    .then(() => setNote(`Opened in ${ed.name}`))
+                    .catch((e) => setNote(String(e))),
+                )}
+              >
+                {ed.name}
+              </button>
+            ))}
+          {cwd && (
+            <>
+              <div className="app-menu-sep" />
+              <button role="menuitem" onClick={pick(() => void copyText(cwd).then(() => setNote("Folder path copied")))}>
+                Copy folder path
+              </button>
+            </>
+          )}
+        </div>
+      )}
       {note && <div className="occ-note">{note}</div>}
     </div>
   );

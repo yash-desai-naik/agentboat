@@ -70,7 +70,11 @@ A macOS build will follow (it compiles, but hasn't been run on a Mac yet).
 - **Open in Claude Code** (title bar, and on each session in the session list): a running
   session's terminal window comes to the front; a finished one is resumed in a new terminal in its
   folder (`claude --resume <id>`). A running session can't be sent a new prompt from outside, so
-  this is how you reply to one that finished its turn.
+  this is how you reply to one that finished its turn. The ▾ beside it opens the session's folder in
+  **VS Code** or **Zed** (whichever are installed) or copies its path.
+- **Right-click** any file or folder (tabs, breadcrumb, Explorer, Search, Source Control, the
+  Claude panel, `file:line` in the terminal, the session list): copy its path, relative path or path
+  with the line, or open it in VS Code or Zed at that line. Selected text can be copied too.
 - **Status bar.** The session's state, branch, permission mode, the context in use as a share of
   the window (a bar and a percentage), and the model with its reasoning effort. With **Show usage
   limits** on (**Ccboat ▾**), also your 5-hour and weekly usage, each with a bar and when it

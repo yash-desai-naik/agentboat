@@ -105,6 +105,7 @@ function TabButton({ tab, active, step, present, head }: { tab: Tab; active: boo
       aria-selected={active}
       title={tab.path ?? tab.title}
       onClick={() => seek(tab.step)}
+      data-path={tab.kind === "file" ? (tab.path ?? undefined) : undefined}
     >
       {tab.kind === "file" ? <FileIcon name={tab.title} /> : <span className="tab-web" aria-hidden="true">◍</span>}
       <span className={`tab-title${dirty ? " modified" : ""}`}>{tab.title}</span>
@@ -137,7 +138,7 @@ function Breadcrumb({ path, cwd, extra }: { path: string; cwd: string | null; ex
   const rel = relativeTo(path, cwd);
   const parts = (rel ?? path.replace(/\\/g, "/")).split("/").filter(Boolean);
   return (
-    <div className="breadcrumb">
+    <div className="breadcrumb" data-path={path}>
       {rel !== null && cwd && (
         <>
           <span className="crumb root">{baseName(cwd)}</span>

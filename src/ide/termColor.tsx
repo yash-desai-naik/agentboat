@@ -237,7 +237,7 @@ function withLocations(line: string, key: number): ReactNode {
   for (let m = re.exec(line); m; m = re.exec(line)) {
     parts.push(line.slice(last, m.index));
     parts.push(
-      <span key={k++} className="o-loc">
+      <span key={k++} className="o-loc" data-path={m[1]} data-line={/\d+/.exec(m[2])?.[0]}>
         {m[0]}
       </span>,
     );

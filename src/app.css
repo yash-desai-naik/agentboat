@@ -677,3 +677,75 @@ button.brand svg {
   align-items: center;
   gap: 6px;
 }
+
+/* ---------- Open in ▾ and the right-click menu ---------- */
+
+.occ-split {
+  display: flex;
+}
+.occ-split .occ-btn {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.occ-more {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-left: 0;
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+  background: var(--bg);
+  color: var(--text-2);
+}
+.occ-more:hover,
+.occ-more[aria-expanded="true"] {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.occ-menu {
+  top: 30px;
+  left: auto;
+  right: 0;
+  min-width: 200px;
+}
+.ctx-dim {
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+.ctx-menu {
+  position: fixed;
+  z-index: 90;
+  min-width: 210px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: var(--shadow-pop);
+}
+.ctx-menu button {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font-size: var(--fs-md);
+  white-space: nowrap;
+}
+.ctx-menu button:hover {
+  background: var(--bg-hover);
+}
+.ctx-note {
+  position: fixed;
+  z-index: 90;
+  padding: 4px 9px;
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--text-2);
+  box-shadow: var(--shadow-pop);
+  font-size: var(--fs-sm);
+  pointer-events: none;
+}

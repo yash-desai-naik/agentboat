@@ -96,6 +96,13 @@ Rust, `src-tauri/src/` (the window-free core `ccboat_core`, plus `main.rs` and `
   code back. `read` gives the open session's window size, the newest `rate_limits` of any session
   (they're account-wide; `resets_at` is Unix seconds) and window sizes per model; snapshots older
   than a week are deleted. Desktop side: `usage.rs` (`usage`, `limits_status`, `limits_set`).
+- `editors.rs` (desktop side): **Open in VS Code / Zed**. Finds the installed editors (VS Code's
+  `Code.exe`, Zed's `bin\zed.exe` launcher; the `.app`s on macOS; `code`/`zed` on the PATH
+  elsewhere) and opens a folder, or a file at a line inside the session's folder (`Code.exe <root>
+  --goto <file>:<line>`, `zed <root> <file>:<line>`). Paths must be absolute and exist, and the
+  editor is started directly, never through a shell. The UI side: `src/lib/editors.ts`, and
+  `src/ui/ContextMenu.tsx`, the right-click menu for any element carrying `data-path` (with
+  `data-line`, `data-session`, `data-cwd`).
 - `update.rs`: the updater (check, download, verify, install), driven by the UI's schedule;
   `desktop.rs`: the About box's folders and the GitHub links (fixed addresses only).
 - `watch.rs`: one thread polls the open session every 250 ms (1 s while hidden) and emits

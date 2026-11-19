@@ -3,6 +3,7 @@
 
 mod attention;
 mod desktop;
+mod editors;
 mod terminal;
 mod usage;
 mod update;
@@ -53,6 +54,8 @@ fn main() {
             desktop::open_repo_page,
             desktop::open_url,
             terminal::open_in_claude_code,
+            editors::editors,
+            editors::open_in_editor,
             attention::attention_list,
             attention::attention_answer,
             attention::attention_dismiss,

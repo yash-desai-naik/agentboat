@@ -6,6 +6,21 @@ All notable changes to Ccboat are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Open in VS Code or Zed:** the ▾ beside **Open in Claude Code** opens the session's folder in an
+  installed editor (only the ones on this computer are listed) or copies the folder's path.
+- **Right-click a file or folder anywhere** (editor tabs, the breadcrumb, Explorer, Search results,
+  Source Control, the Claude panel, `file:line` locations in the terminal, the session list) to copy
+  its path, its path relative to the project, or its path with the line, or to open it in VS Code or
+  Zed at that line. Sessions also offer **Open in Claude Code**. Selected text can be copied the same
+  way.
+
+### Changed
+
+- A new logo: a deep navy background in place of the near-black one, so the icon stands out on
+  dark taskbars and title bars.
+
 ## [0.4.1] - 2026-11-19
 
 ### Changed

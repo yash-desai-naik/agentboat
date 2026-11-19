@@ -105,7 +105,7 @@ function Row({ s, selected, current, onOpen }: { s: SessionEntry; selected: bool
   const status = s.live ? (s.status === "busy" ? "working" : s.status === "waiting" ? "waiting" : "idle") : "ended";
   const [note, setNote] = useState<string | null>(null);
   return (
-    <div className={`sl-row-wrap${selected ? " selected" : ""}`}>
+    <div className={`sl-row-wrap${selected ? " selected" : ""}`} data-path={s.cwd ?? undefined} data-session={s.id} data-cwd={s.cwd ?? undefined}>
     <button ref={ref} className={`sl-row${selected ? " selected" : ""}${current ? " current" : ""}`} onClick={onOpen} title={s.path}>
       <span className={`st-dot s-${status}`} />
       <span className="sl-main">

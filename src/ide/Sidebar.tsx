@@ -135,7 +135,13 @@ function DirNode({ node, depth, activeKey, rootLabel, here }: { node: Node; dept
   const hasModified = (x: Node): boolean => x.files.some((f) => f.status !== "R") || [...x.dirs.values()].some(hasModified);
   return (
     <div className="tree-dir">
-      <button className={`tree-row dir${rootLabel ? " root" : ""}`} style={{ paddingLeft: 6 + depth * 12 }} onClick={() => setOpen(!open)} title={n.path}>
+      <button
+        className={`tree-row dir${rootLabel ? " root" : ""}`}
+        style={{ paddingLeft: 6 + depth * 12 }}
+        onClick={() => setOpen(!open)}
+        title={n.path}
+        data-path={n.path || undefined}
+      >
         <Chevron open={open} />
         {!rootLabel && <Folder size={14} open={open} />}
         <span className={`tree-name${hasModified(n) ? " has-mod" : ""}`}>{rootLabel ? label.toUpperCase() : label}</span>
@@ -152,6 +158,7 @@ function DirNode({ node, depth, activeKey, rootLabel, here }: { node: Node; dept
               style={{ paddingLeft: 6 + (depth + 1) * 12 + 14 }}
               onClick={() => seek(f.last)}
               title={`${f.path}\nLast touched at step ${f.last + 1}${f.viaShell ? " (from the terminal)" : ""}`}
+              data-path={f.path}
             >
               <FileIcon name={baseName(f.path)} />
               <span className={`tree-name st-${f.status}-name`}>{baseName(f.path)}</span>
@@ -201,14 +208,14 @@ function SearchView({ ide, steps, head }: { ide: Ide; steps: Step[]; head: Head 
             <div className="search-results">
               {results.files.slice(0, 300).map((f) => (
                 <div key={f.file} className="sr-file">
-                  <div className="sr-file-row" title={f.file}>
+                  <div className="sr-file-row" title={f.file} data-path={f.file}>
                     <FileIcon name={baseName(f.file)} />
                     <span className="sr-name">{baseName(f.file)}</span>
                     <span className="sr-dir">{dirOf(f.rel ?? f.file)}</span>
                     {f.lines.length > 0 && <span className="sr-count">{f.lines.length}</span>}
                   </div>
                   {f.lines.slice(0, 20).map((l, k) => (
-                    <div key={k} className="sr-line mono">
+                    <div key={k} className="sr-line mono" data-path={f.file} data-line={l.n ?? undefined}>
                       {l.n !== null && <span className="sr-ln">{l.n}</span>}
                       <span>{l.text}</span>
                     </div>
@@ -297,7 +304,7 @@ function SourceControl({ ide, steps }: { ide: Ide; steps: Step[] }) {
           </div>
           {ide.changes.length === 0 && <p className="side-empty small">No changes since the last commit.</p>}
           {ide.changes.map((f) => (
-            <button key={f.key} className="list-row" onClick={() => seek(f.last)} title={f.path}>
+            <button key={f.key} className="list-row" onClick={() => seek(f.last)} title={f.path} data-path={f.path}>
               <FileIcon name={baseName(f.path)} />
               <span className="ellipsis">{baseName(f.path)}</span>
               <span className="list-dim ellipsis">{dirOf(f.rel ?? f.path)}</span>

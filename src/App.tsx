@@ -8,6 +8,7 @@ import { AboutDialog } from "./ui/AboutDialog";
 import { UpdateNotice } from "./ui/UpdateNotice";
 import { HookDialog, NeedsYouPanel, useNeedsYouAlerts } from "./ui/NeedsYou";
 import { LimitsDialog } from "./ui/LimitsDialog";
+import { ContextMenu } from "./ui/ContextMenu";
 import { ActivityBar, Sidebar, type View } from "./ide/Sidebar";
 import { EditorArea } from "./ide/EditorArea";
 import { TerminalPanel } from "./ide/TerminalPanel";
@@ -185,6 +186,7 @@ export function App() {
       {hookOpen && <HookDialog onClose={() => setHookOpen(false)} />}
       {limitsOpen && <LimitsDialog onClose={() => setLimitsOpen(false)} />}
       <UpdateNotice />
+      <ContextMenu />
     </div>
   );
 }
