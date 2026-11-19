@@ -6,6 +6,12 @@ All notable changes to Ccboat are listed here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The logo joins the boat family: the same boat as Tableboat and Fileboat, with no tile behind it,
+  and an editor window for a sail, in violet. It fills its space, so it looks bigger and clearer on
+  the taskbar, in Start and in the title bar.
+
 ## [0.5.0] - 2026-11-19
 
 ### Added

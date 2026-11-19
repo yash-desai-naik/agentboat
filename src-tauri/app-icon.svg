@@ -1,29 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- Ccboat: a boat whose sail is an editor window with code being written. -->
+  <!-- Ccboat: the boats' boat (Fileboat, Tableboat) with an editor window for a sail, code being
+       written in it. No tile: works on light and dark backgrounds. -->
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#24407f"/>
-      <stop offset="1" stop-color="#0f1b3d"/>
+    <linearGradient id="win" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a08cf8"/>
+      <stop offset="1" stop-color="#7457e6"/>
     </linearGradient>
     <linearGradient id="hull" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#5cc8ff"/>
-      <stop offset="1" stop-color="#2196f3"/>
+      <stop offset="0" stop-color="#5a3fc4"/>
+      <stop offset="1" stop-color="#34217f"/>
     </linearGradient>
   </defs>
-  <rect x="40" y="40" width="944" height="944" rx="216" fill="url(#bg)"/>
-  <rect x="496" y="160" width="32" height="560" rx="16" fill="#cfe3ff"/>
-  <rect x="176" y="196" width="300" height="420" rx="40" fill="#f5f4ee"/>
-  <rect x="176" y="196" width="300" height="70" rx="35" fill="#d9d6ca"/>
-  <rect x="176" y="236" width="300" height="30" fill="#d9d6ca"/>
-  <circle cx="220" cy="231" r="12" fill="#f2715e"/>
-  <circle cx="258" cy="231" r="12" fill="#e3b341"/>
-  <circle cx="296" cy="231" r="12" fill="#4cc38a"/>
-  <rect x="216" y="310" width="120" height="30" rx="15" fill="#569cd6"/>
-  <rect x="352" y="310" width="84" height="30" rx="15" fill="#c2c0b6"/>
-  <rect x="248" y="372" width="170" height="30" rx="15" fill="#4cc38a"/>
-  <rect x="248" y="434" width="110" height="30" rx="15" fill="#ce9178"/>
-  <rect x="216" y="496" width="80" height="30" rx="15" fill="#569cd6"/>
-  <rect x="306" y="490" width="10" height="42" rx="5" fill="#2f6fc0"/>
-  <path d="M560 300 L800 600 H560 Z" fill="#7cc4ff" opacity="0.45"/>
-  <path d="M168 676 H856 Q836 812 700 828 H324 Q188 812 168 676 Z" fill="url(#hull)"/>
+  <!-- mast -->
+  <rect x="176" y="24" width="48" height="712" rx="24" fill="#4a33a8"/>
+  <!-- sail: an editor window -->
+  <rect x="250" y="56" width="740" height="608" rx="56" fill="url(#win)"/>
+  <!-- its title bar, with the three window buttons -->
+  <path d="M250 112 Q250 56 306 56 H934 Q990 56 990 112 V160 H250 Z" fill="#5f44cf"/>
+  <circle cx="318" cy="108" r="22" fill="#ff8a7a"/>
+  <circle cx="384" cy="108" r="22" fill="#ffd166"/>
+  <circle cx="450" cy="108" r="22" fill="#6ee7a8"/>
+  <!-- code, mid-edit -->
+  <rect x="314" y="226" width="200" height="52" rx="26" fill="#ffffff"/>
+  <rect x="538" y="226" width="140" height="52" rx="26" fill="#d9d0ff"/>
+  <rect x="380" y="320" width="300" height="52" rx="26" fill="#6ee7a8"/>
+  <rect x="380" y="414" width="200" height="52" rx="26" fill="#ffd166"/>
+  <rect x="314" y="508" width="140" height="52" rx="26" fill="#ffffff"/>
+  <rect x="474" y="500" width="16" height="68" rx="8" fill="#2d1d70"/>
+  <!-- hull -->
+  <path d="M22 700 H1002 L886 946 Q866 990 818 990 H206 Q158 990 138 946 Z" fill="url(#hull)"/>
 </svg>
