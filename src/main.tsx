@@ -18,6 +18,15 @@ const applyTheme = () => (document.documentElement.dataset.theme = dark.matches 
 applyTheme();
 dark.addEventListener("change", applyTheme);
 
+// No browser menu on right-click (Back, Refresh, Save as, Print): it's an app, not a page. Text
+// fields keep theirs (cut, copy, paste). In development, Shift+right-click still opens it (Inspect).
+window.addEventListener("contextmenu", (e) => {
+  const t = e.target as HTMLElement | null;
+  if (t?.closest("input, textarea, [contenteditable='true']")) return;
+  if (import.meta.env.DEV && e.shiftKey) return;
+  e.preventDefault();
+});
+
 startUpdates();
 startMotion();
 startUpdateChecks();

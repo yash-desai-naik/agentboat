@@ -1697,3 +1697,19 @@
 .sb-limits-off {
   opacity: 0.75;
 }
+
+/* The status bar's own tooltip (StatusTip): stays while hovered. */
+.sb-tip {
+  position: fixed;
+  z-index: 80;
+  max-width: min(420px, calc(100vw - 16px));
+  padding: 5px 9px;
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--text);
+  box-shadow: var(--shadow-pop);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  white-space: normal;
+  pointer-events: none;
+}

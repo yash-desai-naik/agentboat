@@ -6,6 +6,17 @@ All notable changes to Ccboat are listed here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The usage limits in the status bar show their reset time without the ⟳ sign.
+
+### Fixed
+
+- Status bar tooltips stay for as long as the pointer is over the item; they used to vanish after a
+  moment.
+- Right-clicking in the app no longer opens the browser's menu (Back, Refresh, Save as, Print). Text
+  fields keep Cut, Copy and Paste.
+
 ## [0.4.0] - 2026-11-19
 
 ### Added
