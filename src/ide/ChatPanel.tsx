@@ -7,6 +7,7 @@ import type { Head, Step } from "../lib/types";
 import { Chat, StepIcon } from "../ui/Icons";
 import { Markdown } from "./Markdown";
 import { frameDue } from "../lib/motion";
+import { ScrollJump } from "../ui/ScrollJump";
 
 /** The conversation as it stood at the cursor: your prompts, Claude's replies, and each tool call. */
 export function ChatPanel({ head, steps, cursor }: { head: Head | null; steps: Step[]; cursor: number }) {
@@ -70,6 +71,7 @@ export function ChatPanel({ head, steps, cursor }: { head: Head | null; steps: S
         </div>
         )}
       </div>
+      <ScrollJump target={box} />
       <div className="chat-list" ref={box}>
         {more && (
           <button className="chat-more" onClick={() => setLimit((l) => l + 250)}>

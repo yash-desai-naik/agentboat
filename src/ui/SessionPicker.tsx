@@ -5,6 +5,7 @@ import type { SessionEntry } from "../lib/types";
 import { IN_TAURI } from "../lib/tauri";
 import { openInClaudeCode } from "../lib/attention";
 import { Terminal } from "./Icons";
+import { ScrollJump } from "./ScrollJump";
 import { settings, useSettings } from "../lib/settings";
 import { Extras } from "./Onboarding";
 
@@ -19,6 +20,7 @@ export function SessionList({ onOpened, autoFocus }: { onOpened?: () => void; au
   const [sel, setSel] = useState(0);
   const { head } = useSession();
   const input = useRef<HTMLInputElement>(null);
+  const scroll = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let stop = false;
@@ -77,7 +79,8 @@ export function SessionList({ onOpened, autoFocus }: { onOpened?: () => void; au
       }}
     >
       <input ref={input} className="sl-filter" placeholder="Filter by title, prompt, folder or branch" value={q} onChange={(e) => setQ(e.target.value)} spellCheck={false} />
-      <div className="sl-scroll">
+      <ScrollJump target={scroll} />
+      <div className="sl-scroll" ref={scroll}>
         {!IN_TAURI && <p className="side-empty">Run AgentBoat as the desktop app to see your sessions.</p>}
         {list === null && IN_TAURI && <p className="side-empty">Looking for sessions…</p>}
         {list && list.length === 0 && (

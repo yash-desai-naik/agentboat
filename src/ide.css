@@ -1597,6 +1597,20 @@
   padding: 0 7px;
   height: 100%;
 }
+/* A short divider between neighbouring items (not across the gap in the middle). */
+.sb-item + .sb-item {
+  position: relative;
+  margin-left: 4px;
+}
+.sb-item + .sb-item::before {
+  content: "";
+  position: absolute;
+  left: -3px;
+  top: 50%;
+  height: 12px;
+  border-left: 1px solid color-mix(in srgb, var(--sb-fg) 30%, transparent);
+  transform: translateY(-50%);
+}
 .sb-fill {
   flex: 1;
 }
@@ -1669,6 +1683,44 @@
 }
 .sb-advisor svg {
   color: var(--tl-advisor);
+}
+/* The bar's right-click menu: which items show. */
+.sb-menu .sb-check {
+  display: inline-block;
+  width: 18px;
+  color: var(--accent);
+}
+/* The two model names stand out as full-height blocks: the main one a darker shade of the bar,
+   the advisor in its own colour. */
+.sb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+.sb-model {
+  background: #f3f2ee;
+  color: #24231f;
+}
+.sb-model .sb-chip svg {
+  color: #c15f3c;
+}
+.sb-model .sb-effort {
+  opacity: 0.65;
+}
+.sb-advisor {
+  background: #a8236f;
+  color: #ffffff;
+}
+.sb-advisor svg {
+  color: inherit;
+}
+.sb-item.sb-model::before,
+.sb-item.sb-advisor::before {
+  display: none;
+}
+.sb-model + .sb-advisor {
+  margin-left: 0;
 }
 .statusbar .dim {
   color: inherit;

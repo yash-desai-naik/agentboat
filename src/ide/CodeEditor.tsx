@@ -5,6 +5,7 @@ import { Compartment, EditorState, StateEffect, StateField, type Extension } fro
 import { Decoration, type DecorationSet, EditorView, highlightActiveLine, highlightSpecialChars, lineNumbers, WidgetType } from "@codemirror/view";
 import { tags as t } from "@lezer/highlight";
 import { useEffect, useRef } from "react";
+import { ScrollJump } from "../ui/ScrollJump";
 import { frameDue } from "../lib/motion";
 
 /**
@@ -353,5 +354,10 @@ export function CodeEditor({ doc, original, name, startLine, typing, wrap, prese
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presenceKey]);
 
-  return <div className="code-editor" ref={host} />;
+  return (
+    <>
+      <div className="code-editor" ref={host} />
+      <ScrollJump target={host} selector=".cm-scroller" />
+    </>
+  );
 }

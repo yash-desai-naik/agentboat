@@ -32,6 +32,11 @@ export function ContextMenu() {
 
   useEffect(() => {
     const onMenu = (e: MouseEvent) => {
+      // Something drew its own menu (the status bar's).
+      if (e.defaultPrevented) {
+        setMenu(null);
+        return;
+      }
       const t = e.target as HTMLElement | null;
       if (!t || t.closest("input, textarea, [contenteditable='true']")) return;
       const el = t.closest<HTMLElement>("[data-path]");

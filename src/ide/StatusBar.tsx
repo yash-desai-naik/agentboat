@@ -1,10 +1,11 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Ide } from "../lib/derive";
 import { duration, modelName, shortTool, tokens } from "../lib/format";
 import { setWatch, useSession } from "../lib/store";
 import { agentName } from "../lib/derive";
 import type { Head, Meta } from "../lib/types";
-import { Advisor, Branch } from "../ui/Icons";
+import { Advisor, Bolt, Branch, Checklist, Pencil, Shield, Sparkle } from "../ui/Icons";
 import { useNow } from "../lib/clock";
 import { settings, useSettings } from "../lib/settings";
 import { contextWindow, resetTime, useLimitsInstalled, useUsage, type Cap, type Usage } from "../lib/usage";
@@ -17,22 +18,37 @@ const STATUS_TEXT: Record<string, string> = {
   ended: "Ended",
 };
 
-/** The permission mode in words; nothing for the default. */
-function permissionLabel(m: string | null): string | null {
+/** The items that can be turned off from the bar's right-click menu, in the bar's order. */
+const STATUS_ITEMS: [id: string, label: string][] = [
+  ["status", "Session state"],
+  ["branch", "Branch"],
+  ["errors", "Failed tool calls"],
+  ["running", "Running tool"],
+  ["mode", "Permission mode"],
+  ["context", "Context"],
+  ["limit5h", "5-hour limit"],
+  ["limit7d", "Weekly limit"],
+  ["model", "Model"],
+  ["effort", "Reasoning effort"],
+  ["advisor", "Advisor"],
+];
+
+/** The permission mode in words, with its icon; nothing for the default. */
+function permissionLabel(m: string | null): { text: string; icon: React.ReactNode } | null {
   switch (m) {
     case null:
     case "default":
       return null;
     case "acceptEdits":
-      return "accept edits";
+      return { text: "accept edits", icon: <Pencil size={13} /> };
     case "bypassPermissions":
-      return "bypass permissions";
+      return { text: "bypass permissions", icon: <Shield size={13} off /> };
     case "plan":
-      return "plan mode";
+      return { text: "plan mode", icon: <Checklist size={13} /> };
     case "auto":
-      return "auto mode";
+      return { text: "auto mode", icon: <Bolt size={13} /> };
     default:
-      return m;
+      return { text: m, icon: <Shield size={13} /> };
   }
 }
 
@@ -58,7 +74,16 @@ export function StatusBar({ ide, head, onLimits }: { ide: Ide; head: Head | null
     setTipEl(null);
   };
   const { follow, playing, cursor, steps, watch } = useSession();
-  const { showTimeline } = useSettings();
+  const { showTimeline, hiddenStatus } = useSettings();
+  const shown = (id: string) => !hiddenStatus.includes(id);
+  // The right-click menu: which items show (as VS Code's status bar has).
+  const [menu, setMenu] = useState<{ x: number; y: number; item: string | null } | null>(null);
+  const onMenu = (e: React.MouseEvent<HTMLElement>) => {
+    e.preventDefault();
+    onTipLeave();
+    const item = (e.target as HTMLElement).closest<HTMLElement>("[data-sb]")?.dataset.sb ?? null;
+    setMenu({ x: e.clientX, y: e.clientY, item });
+  };
   const now = useNow();
   const status = head?.status ?? "ended";
   const atEnd = cursor >= steps.length - 1;
@@ -77,29 +102,31 @@ export function StatusBar({ ide, head, onLimits }: { ide: Ide; head: Head | null
     return n;
   })();
   return (
-    <footer className={`statusbar s-${status}`} onMouseOver={onTipOver} onMouseLeave={onTipLeave}>
-      <span className={`sb-item sb-status s-${status}`} data-tip={head?.waitingFor ? `Waiting for: ${head.waitingFor}` : undefined}>
-        <span className="sb-dot" /> {STATUS_TEXT[status] ?? status}
-        {status === "waiting" && head?.waitingFor ? `: ${head.waitingFor}` : ""}
-      </span>
+    <footer className={`statusbar s-${status}`} onMouseOver={onTipOver} onMouseLeave={onTipLeave} onContextMenu={onMenu}>
+      {shown("status") && (
+        <span className={`sb-item sb-status s-${status}`} data-sb="status" data-tip={head?.waitingFor ? `Waiting for: ${head.waitingFor}` : undefined}>
+          <span className="sb-dot" /> {STATUS_TEXT[status] ?? status}
+          {status === "waiting" && head?.waitingFor ? `: ${head.waitingFor}` : ""}
+        </span>
+      )}
       {where && (
         <button className={`sb-where w-${where}`} onClick={() => settings.set({ showTimeline: true })} data-tip="Show the timeline (Ctrl+T)">
           {where === "replay" ? "▶ Replay" : `❚❚ Step ${cursor + 1} of ${steps.length}`}
         </button>
       )}
-      {ide.branch && (
-        <span className="sb-item" data-tip="Branch">
+      {ide.branch && shown("branch") && (
+        <span className="sb-item" data-sb="branch" data-tip="Branch">
           <Branch size={13} /> {ide.branch}
           {ide.ahead > 0 && <span data-tip="Commits not pushed"> ↑{ide.ahead}</span>}
         </span>
       )}
-      {turnErrors > 0 && (
-        <span className="sb-item sb-err" data-tip="Failed tool calls this turn">
+      {turnErrors > 0 && shown("errors") && (
+        <span className="sb-item sb-err" data-sb="errors" data-tip="Failed tool calls this turn">
           ✕ {turnErrors}
         </span>
       )}
-      {running && (
-        <span className="sb-item sb-running ellipsis">
+      {running && shown("running") && (
+        <span className="sb-item sb-running ellipsis" data-sb="running">
           <span className="spinner" /> {shortTool(running.tool)}
           {running.label && !running.label.startsWith(shortTool(running.tool)) ? `: ${running.label}` : ""}
           {follow && atEnd ? ` · ${duration(now - running.ts)}` : ""}
@@ -112,22 +139,101 @@ export function StatusBar({ ide, head, onLimits }: { ide: Ide; head: Head | null
         </button>
       )}
       <span className="sb-fill" />
-      {mode && <span className="sb-item" data-tip="Permission mode">{mode}</span>}
-      {head && head.meta.contextTokens > 0 && <ContextMeter used={head.meta.contextTokens} model={head.meta.model} usage={usage} />}
-      <Limits usage={usage} on={limitsOn} now={now} onSetup={onLimits} />
-      {head?.meta.model && (
-        <span className="sb-item" data-tip={head.meta.version ? `Claude Code ${head.meta.version}` : undefined}>
-          {head.meta.model.replace(/^claude-/, "")}
-          {effort && <span className="sb-effort" data-tip="Reasoning effort of the last reply"> · {effort}</span>}
+      {mode && shown("mode") && (
+        <span className="sb-item" data-sb="mode" data-tip="Permission mode">
+          {mode.icon} {mode.text}
         </span>
       )}
-      {head?.meta.advisorModel && (
-        <span className="sb-item sb-advisor" data-tip={advisorTip(head.meta)}>
-          <Advisor size={12} /> {modelName(head.meta.advisorModel)}
+      {head && head.meta.contextTokens > 0 && shown("context") && <ContextMeter used={head.meta.contextTokens} model={head.meta.model} usage={usage} />}
+      <Limits usage={usage} on={limitsOn} now={now} onSetup={onLimits} shown={shown} />
+      {head?.meta.model && shown("model") && (
+        <span className="sb-item sb-model" data-sb="model" data-tip={head.meta.model + (head.meta.version ? ` · Claude Code ${head.meta.version}` : "")}>
+          <span className="sb-chip sb-chip-main">
+            <Sparkle size={12} /> {modelName(head.meta.model)}
+          </span>
+          {effort && shown("effort") && (
+            <span className="sb-effort" data-sb="effort" data-tip="Reasoning effort of the last reply">
+              {" "}
+              · {effort}
+            </span>
+          )}
         </span>
       )}
-      {tipEl && <StatusTip el={tipEl} />}
+      {head?.meta.advisorModel && shown("advisor") && (
+        <span className="sb-item sb-advisor" data-sb="advisor" data-tip={advisorTip(head.meta)}>
+          <span className="sb-chip sb-chip-advisor">
+            <Advisor size={12} /> {modelName(head.meta.advisorModel)}
+          </span>
+        </span>
+      )}
+      {tipEl && !menu && <StatusTip el={tipEl} />}
+      {menu && <StatusMenu {...menu} hidden={hiddenStatus} onClose={() => setMenu(null)} />}
     </footer>
+  );
+}
+
+/** Right-click on the bar: hide the item under the pointer, or tick which items show. */
+function StatusMenu({ x, y, item, hidden, onClose }: { x: number; y: number; item: string | null; hidden: string[]; onClose: () => void }) {
+  const box = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const b = box.current;
+    if (!b) return;
+    b.style.left = `${Math.max(4, Math.min(x, window.innerWidth - b.offsetWidth - 4))}px`;
+    b.style.top = `${Math.max(4, Math.min(y, window.innerHeight - b.offsetHeight - 4))}px`;
+  }, [x, y]);
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => !box.current?.contains(e.target as Node) && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("blur", onClose);
+    window.addEventListener("resize", onClose);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("blur", onClose);
+      window.removeEventListener("resize", onClose);
+    };
+  }, [onClose]);
+  const set = (next: string[]) => {
+    settings.set({ hiddenStatus: next });
+    onClose();
+  };
+  const toggle = (id: string) => set(hidden.includes(id) ? hidden.filter((h) => h !== id) : [...hidden, id]);
+  const label = item ? STATUS_ITEMS.find(([id]) => id === item)?.[1] : undefined;
+  return createPortal(
+    <div ref={box} className="ctx-menu sb-menu" role="menu"
+      // A portal's events still bubble to the bar: keep them from reopening the menu or showing tips.
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onMouseOver={(e) => e.stopPropagation()}
+    >
+      {item && label && (
+        <>
+          <button role="menuitem" onClick={() => toggle(item)}>
+            Hide {label}
+          </button>
+          <div className="app-menu-sep" />
+        </>
+      )}
+      {STATUS_ITEMS.map(([id, name]) => (
+        <button key={id} role="menuitemcheckbox" aria-checked={!hidden.includes(id)} onClick={() => toggle(id)}>
+          <span className="sb-check">{hidden.includes(id) ? "" : "✓"}</span>
+          {name}
+        </button>
+      ))}
+      {hidden.length > 0 && (
+        <>
+          <div className="app-menu-sep" />
+          <button role="menuitem" onClick={() => set([])}>
+            Show all
+          </button>
+        </>
+      )}
+    </div>,
+    document.body,
   );
 }
 
@@ -157,7 +263,7 @@ function ContextMeter({ used, model, usage }: { used: number; model: string | nu
   const pct = (100 * used) / size;
   const note = exact ? "" : " (window size estimated: turn on Show usage limits for the exact one)";
   return (
-    <span className={`sb-item sb-ctx${hot(pct)}`} data-tip={`Context in use at the last request: ${tokens(used)} of ${exact ? "" : "about "}${tokens(size)} tokens${note}`}>
+    <span className={`sb-item sb-ctx${hot(pct)}`} data-sb="context" data-tip={`Context in use at the last request: ${tokens(used)} of ${exact ? "" : "about "}${tokens(size)} tokens${note}`}>
       ctx <Meter pct={pct} /> {exact ? "" : "≈"}
       {Math.round(pct)}%
     </span>
@@ -165,11 +271,12 @@ function ContextMeter({ used, model, usage }: { used: number; model: string | nu
 }
 
 /** The account's 5-hour and 7-day usage with when each resets; a way to turn them on when off. */
-function Limits({ usage, on, now, onSetup }: { usage: Usage | null; on: boolean | null; now: number; onSetup: () => void }) {
-  const caps: [string, string, Cap | null][] = [
+function Limits({ usage, on, now, onSetup, shown }: { usage: Usage | null; on: boolean | null; now: number; onSetup: () => void; shown: (id: string) => boolean }) {
+  const caps = ([
     ["5h", "5-hour limit", usage?.fiveHour ?? null],
     ["7d", "Weekly limit", usage?.sevenDay ?? null],
-  ];
+  ] as [string, string, Cap | null][]).filter(([key]) => shown(`limit${key}`));
+  if (caps.length === 0) return null;
   if (!caps.some(([, , c]) => c)) {
     if (on)
       return (
@@ -191,12 +298,12 @@ function Limits({ usage, on, now, onSetup }: { usage: Usage | null; on: boolean 
         const reset = c.resetsAt ?? 0;
         if (reset && reset <= now)
           return (
-            <span key={key} className="sb-item dim" data-tip={`${name}: reset at ${resetTime(reset)}; new figures come with the next reply`}>
+            <span key={key} className="sb-item dim" data-sb={`limit${key}`} data-tip={`${name}: reset at ${resetTime(reset)}; new figures come with the next reply`}>
               {key} reset
             </span>
           );
         return (
-          <span key={key} className={`sb-item sb-cap${hot(c.usedPct)}`} data-tip={`${name}: ${Math.round(c.usedPct)}% used${reset ? `, resets ${resetTime(reset)}` : ""}${asOf}`}>
+          <span key={key} className={`sb-item sb-cap${hot(c.usedPct)}`} data-sb={`limit${key}`} data-tip={`${name}: ${Math.round(c.usedPct)}% used${reset ? `, resets ${resetTime(reset)}` : ""}${asOf}`}>
             {key} <Meter pct={c.usedPct} /> {Math.round(c.usedPct)}%{reset ? <span className="sb-reset"> {resetTime(reset)}</span> : null}
           </span>
         );

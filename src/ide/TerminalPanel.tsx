@@ -6,6 +6,7 @@ import { type Anim, seek, useDetails, useSession } from "../lib/store";
 import { useSettings } from "../lib/settings";
 import type { Detail, Head, Step } from "../lib/types";
 import { frameDue } from "../lib/motion";
+import { ScrollJump } from "../ui/ScrollJump";
 
 /** Commands shown per terminal (older ones scroll away, as in a real terminal). */
 const HISTORY = 40;
@@ -62,12 +63,15 @@ function TerminalBody({ list, anim, branch, current }: { list: Step[]; anim: Ani
     if (el) el.scrollTop = el.scrollHeight;
   }, [last?.i, last?.v, details[details.length - 1], tick]);
   return (
+    <>
+    <ScrollJump target={box} />
     <div className="terminal" ref={box}>
       {list.map((s, k) => (
         <TermEntry key={s.i} step={s} d={details[k]} anim={anim} branch={branch} current={s.i === current} onGrow={() => setTick((t) => t + 1)} />
       ))}
       {list.length > 0 && last.state !== "run" && <PromptLine d={details[details.length - 1]} step={last} branch={branch} cursor />}
     </div>
+    </>
   );
 }
 

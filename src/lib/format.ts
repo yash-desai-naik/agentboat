@@ -88,11 +88,12 @@ export function shortTool(name: string | null): string {
   return `${server}: ${tool}`;
 }
 
-/** `claude-fable-5-2` → `Fable 5.2`, `claude-opus-4-8-20260101` → `Opus 4.8`, `opus` → `Opus`. */
+/** `claude-fable-5-2` → `Fable 5.2`, `claude-opus-4-8-20260101` → `Opus 4.8`, `claude-opus-5-5[1m]` → `Opus 5.5 (1M)`, `opus` → `Opus`. */
 export function modelName(id: string | null): string {
   if (!id) return "";
-  const parts = id.replace(/^claude-/, "").split("-").filter((p) => !/^\d{8}$/.test(p));
+  const big = /\[1m\]$/i.test(id) ? " (1M)" : "";
+  const parts = id.replace(/\[1m\]$/i, "").replace(/^claude-/, "").split("-").filter((p) => !/^\d{8}$/.test(p));
   const [family, ...version] = parts;
   if (!family || version.some((v) => !/^\d+$/.test(v))) return id;
-  return [family[0].toUpperCase() + family.slice(1), version.join(".")].filter(Boolean).join(" ");
+  return [family[0].toUpperCase() + family.slice(1), version.join(".")].filter(Boolean).join(" ") + big;
 }

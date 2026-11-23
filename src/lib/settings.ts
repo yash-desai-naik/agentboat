@@ -38,6 +38,8 @@ export interface Settings {
   toured: boolean;
   /** The one-time "Ccboat is now AgentBoat" note has been read. */
   ccboatNoticeSeen: boolean;
+  /** Status bar items turned off from its right-click menu (ids from StatusBar's STATUS_ITEMS). */
+  hiddenStatus: string[];
 }
 
 const DEFAULTS: Settings = {
@@ -62,6 +64,7 @@ const DEFAULTS: Settings = {
   onboarded: false,
   toured: false,
   ccboatNoticeSeen: false,
+  hiddenStatus: [],
 };
 
 const KEY = "ccb.settings";

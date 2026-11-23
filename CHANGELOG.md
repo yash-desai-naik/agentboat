@@ -6,6 +6,26 @@ All notable changes to AgentBoat (called Ccboat up to 0.5.1) are listed here. Th
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-23
+
+### Added
+
+- **Choose what the status bar shows.** Right-click it, as in VS Code: tick or untick each item
+  (session state, branch, failed tool calls, running tool, permission mode, context, the 5-hour
+  and weekly limits, model, reasoning effort, advisor), or "Hide" the one under the pointer.
+  "Show all" brings everything back. The choice is remembered.
+- **Jump to top / end.** Tiny ↑ and ↓ buttons in the corner of the editor, the Claude panel, the
+  terminal and the session list, shown while the pointer is over them and only for the end you're
+  away from.
+
+### Changed
+
+- The status bar names models as people do ("Opus 5.5", "Opus 5.5 (1M)") rather than by id; the
+  id is in its tooltip. The model and the advisor stand out in blocks of their own: the model
+  light, the advisor magenta.
+- The permission mode has an icon (auto, plan, accept edits, bypass), and a thin divider separates
+  the status bar's items.
+
 ## [0.8.0] - 2026-11-23
 
 ### Added
@@ -208,7 +228,8 @@ The first release: watch a Claude Code session as a read-only IDE, live or repla
 - Light on resources: about 200 MB of memory, 5–9% of one core following a live session, under 1%
   minimized. Never writes anywhere and never uses the network.
 
-[Unreleased]: https://github.com/yash-desai-naik/agentboat/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/yash-desai-naik/agentboat/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/yash-desai-naik/agentboat/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/yash-desai-naik/agentboat/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/yash-desai-naik/agentboat/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/yash-desai-naik/agentboat/releases/tag/v0.6.0

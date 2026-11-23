@@ -159,6 +159,11 @@ export const Advisor = ({ size = 16, className }: P) =>
     <path d="M6.4 13.9h3.2M8 5v2.6" />
   </>);
 export const Bolt = ({ size = 16, className }: P) => svg(size, className, <path d="M9 1.5 3.5 9H8l-1 5.5L12.5 7H8Z" />);
+export const Shield = ({ size = 16, className, off }: P & { off?: boolean }) =>
+  svg(size, className, <>
+    <path d="M8 1.8 13 3.6v4c0 3.1-2.1 5.5-5 6.6-2.9-1.1-5-3.5-5-6.6v-4Z" />
+    {off && <path d="M2.5 2.5l11 11" />}
+  </>);
 export const Stop = ({ size = 16, className }: P) =>
   svg(size, className, <>
     <circle cx="8" cy="8" r="6" />
