@@ -5,7 +5,7 @@ import { duration, modelName, shortTool, tokens } from "../lib/format";
 import { setWatch, useSession } from "../lib/store";
 import { agentName } from "../lib/derive";
 import type { Head, Meta } from "../lib/types";
-import { Advisor, Bolt, Branch, Checklist, Pencil, Shield, Sparkle } from "../ui/Icons";
+import { Advisor, Bolt, Branch, Checklist, Pencil, Shield } from "../ui/Icons";
 import { useNow } from "../lib/clock";
 import { settings, useSettings } from "../lib/settings";
 import { contextWindow, resetTime, useLimitsInstalled, useUsage, type Cap, type Usage } from "../lib/usage";
@@ -149,7 +149,7 @@ export function StatusBar({ ide, head, onLimits }: { ide: Ide; head: Head | null
       {head?.meta.model && shown("model") && (
         <span className="sb-item sb-model" data-sb="model" data-tip={head.meta.model + (head.meta.version ? ` · Claude Code ${head.meta.version}` : "")}>
           <span className="sb-chip sb-chip-main">
-            <Sparkle size={12} /> {modelName(head.meta.model)}
+            <ClaudeStar spin={status === "working" || status === "active"} /> {modelName(head.meta.model)}
           </span>
           {effort && shown("effort") && (
             <span className="sb-effort" data-sb="effort" data-tip="Reasoning effort of the last reply">
@@ -234,6 +234,28 @@ function StatusMenu({ x, y, item, hidden, onClose }: { x: number; y: number; ite
       )}
     </div>,
     document.body,
+  );
+}
+
+/** Claude Code's own spinner glyphs, run forward then back. */
+const STAR_FRAMES = (() => {
+  // U+FE0E keeps ✳ a text glyph: Windows would draw it as a colour emoji.
+  const f = ["·", "✢", "✳︎", "✶", "✻", "✽"];
+  return [...f, ...[...f].reverse()];
+})();
+
+/** The model's star: still while Claude waits, turning as Claude Code's spinner does while it works. */
+function ClaudeStar({ spin }: { spin: boolean }) {
+  const [frame, setFrame] = useState(0);
+  useEffect(() => {
+    if (!spin || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const t = window.setInterval(() => setFrame((n) => (n + 1) % STAR_FRAMES.length), 120);
+    return () => window.clearInterval(t);
+  }, [spin]);
+  return (
+    <span className={`sb-star${spin ? " spin" : ""}`} aria-hidden="true">
+      {spin ? STAR_FRAMES[frame] : "✻"}
+    </span>
   );
 }
 

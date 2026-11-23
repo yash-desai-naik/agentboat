@@ -6,6 +6,14 @@ All notable changes to AgentBoat (called Ccboat up to 0.5.1) are listed here. Th
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-23
+
+### Changed
+
+- The status bar's model is in Claude Code's dark colours, with a bigger star in Claude's orange
+  that turns as Claude Code's own spinner does (· ✢ ✳ ✶ ✻ ✽) while the session works, and stays
+  still otherwise (or when Windows is set to reduce animations).
+
 ## [0.9.0] - 2026-11-23
 
 ### Added
@@ -228,7 +236,8 @@ The first release: watch a Claude Code session as a read-only IDE, live or repla
 - Light on resources: about 200 MB of memory, 5–9% of one core following a live session, under 1%
   minimized. Never writes anywhere and never uses the network.
 
-[Unreleased]: https://github.com/yash-desai-naik/agentboat/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/yash-desai-naik/agentboat/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/yash-desai-naik/agentboat/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/yash-desai-naik/agentboat/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/yash-desai-naik/agentboat/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/yash-desai-naik/agentboat/compare/v0.6.0...v0.7.0
