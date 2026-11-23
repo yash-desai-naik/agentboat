@@ -32,6 +32,7 @@ export type StepCat =
   | "ask"
   | "skill"
   | "mcp"
+  | "advisor"
   | "other";
 
 export interface Step {
@@ -74,6 +75,12 @@ export interface Meta {
   permissionMode: string | null;
   contextTokens: number;
   outputTokens: number;
+  /** The model Claude consults with the advisor tool (`/advisor`), as of the last reply; null when off. */
+  advisorModel: string | null;
+  /** Advisor calls so far, subagents' included, and the tokens they read and wrote. */
+  advisorCalls: number;
+  advisorInputTokens: number;
+  advisorOutputTokens: number;
   firstEvent: number | null;
   lastEvent: number | null;
   turnStarted: number | null;
@@ -141,7 +148,7 @@ export interface Hunk {
 
 /** A step's detail; which fields are set depends on `kind`. */
 export interface Detail {
-  kind: "read" | "edit" | "shell" | "search" | "web" | "agent" | "task" | "ask" | "generic";
+  kind: "read" | "edit" | "shell" | "search" | "web" | "agent" | "task" | "ask" | "advisor" | "generic";
   path?: string;
   // read
   content?: string;
@@ -186,4 +193,15 @@ export interface Detail {
   questions?: { question: string; header?: string; options?: { label: string; description?: string }[] }[];
   answers?: Record<string, string> | null;
   error?: string;
+  // advisor
+  model?: string | null;
+  /** `advice` (text), `encrypted` (only Claude can read it), `error`; null while it runs. */
+  result?: "advice" | "encrypted" | "error" | string | null;
+  text?: string;
+  encryptedBytes?: number;
+  errorCode?: string;
+  stopReason?: string | null;
+  /** The conversation forwarded to the advisor, and the advice it wrote, in tokens. */
+  inputTokens?: number;
+  outputTokens?: number;
 }

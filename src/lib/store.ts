@@ -208,6 +208,8 @@ function dwell(s: Step): number {
     if (s.cat === "edit" || s.cat === "write") ms = 1100;
     else if (s.cat === "shell" || s.cat === "git") ms = 850;
     else if (s.cat === "read") ms = 450;
+    // A pause while Claude waits on its advisor, long enough to read the card.
+    else if (s.cat === "advisor") ms = 1200;
     else ms = 350;
   } else if (s.kind === "say") ms = 650;
   else if (s.kind === "prompt") ms = 600;

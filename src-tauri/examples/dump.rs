@@ -48,7 +48,17 @@ fn main() {
         if let Some(g) = &s.git {
             println!("        git {:?}", g);
         }
+        if s.cat == "advisor"
+            && let Some(d) = d
+        {
+            println!("        advisor {}  took {:?} ms", d, s.end.map(|e| e - s.ts));
+        }
     }
+    let m = &v.timeline.meta;
+    println!(
+        "advisor: {:?}, {} calls, {} tokens read, {} written; context {}",
+        m.advisor_model, m.advisor_calls, m.advisor_input_tokens, m.advisor_output_tokens, m.context_tokens
+    );
     // Files written, copied, moved or deleted by shell commands.
     let shell_ops: Vec<_> = v.steps().iter().flat_map(|s| s.files.iter().map(move |f| (s.i, s.state, f))).collect();
     println!("shell file operations: {}", shell_ops.len());

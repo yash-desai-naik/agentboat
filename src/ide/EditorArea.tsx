@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { Ide, Presence, Tab } from "../lib/derive";
 import { agentHue, agentName, isPaletteStep } from "../lib/derive";
-import { baseName, pathKey, relativeTo } from "../lib/format";
+import { baseName, duration, modelName, pathKey, relativeTo, tokens } from "../lib/format";
 import { type Anim, setWatch, useDetail, useDetails, seek, useSession } from "../lib/store";
 import type { Detail, Head, Hunk, Step } from "../lib/types";
 import { CodeEditor, type PresenceMark, type Typing } from "./CodeEditor";
@@ -11,7 +11,7 @@ import { settings } from "../lib/settings";
 import { useSettings } from "../lib/settings";
 import { Markdown } from "./Markdown";
 import { FileIcon } from "./FileIcon";
-import { Close } from "../ui/Icons";
+import { Advisor, Close } from "../ui/Icons";
 
 /** The typing animation for a step, while it's the one that just became current. */
 export function typingFor(anim: Anim | null, i: number): Typing | null {
@@ -33,6 +33,7 @@ export function EditorArea({ ide, head, steps }: { ide: Ide; head: Head | null; 
       <WatchBar head={head} steps={steps} cursor={ide.current?.i ?? -1} watch={ide.watch} />
       {mine && mine.kind === "tool" && mine.cat === "ask" && (onIt || mine.state === "run") && <AskDialog step={mine} head={head} />}
       {mine && onIt && isPaletteStep(mine) && <PaletteBar step={mine} />}
+      {mine && onIt && mine.kind === "tool" && mine.cat === "advisor" && <AdvisorCard step={mine} head={head} />}
       <div className="tabbar">
       <div className="tabstrip" role="tablist">
         {ide.tabs.map((t) => (
@@ -427,6 +428,74 @@ export function AskDialog({ step, head }: { step: Step; head: Head | null }) {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ---------- the advisor: a stronger model Claude consults ----------
+
+/** Why an advisor call failed, by the API's error code. Claude carries on without advice. */
+const ADVISOR_ERRORS: Record<string, string> = {
+  max_uses_exceeded: "The advisor's call limit for this request was reached",
+  too_many_requests: "The advisor was rate-limited",
+  overloaded: "The advisor model was overloaded",
+  prompt_too_long: "The conversation is longer than the advisor model's context window",
+  execution_time_exceeded: "The advisor took too long",
+  model_not_found: "The advisor model isn't available to this account",
+  unavailable: "The advisor failed",
+};
+
+/**
+ * Claude consulting its advisor (`/advisor`): the call takes no input, the API forwards the whole
+ * conversation, and the advice comes back to Claude. Newer advisor models' advice is encrypted:
+ * only Claude reads it, so what's shown is that it happened, how long it took and its size.
+ */
+export function AdvisorCard({ step, head }: { step: Step; head: Head | null }) {
+  const d = useDetail(step);
+  const model = modelName(d?.model ?? step.label);
+  const who = step.agent > 0 ? agentName(head, step.agent) : "Claude";
+  const took = step.end && step.end > step.ts ? duration(step.end - step.ts) : null;
+  const cut = d?.stopReason === "max_tokens";
+  return (
+    <div className="palette-wrap">
+      <div className="palette advisor-card" role="dialog" aria-label="Advisor">
+        <div className="palette-input">
+          <Advisor size={15} className="advisor-icon" />
+          <span className="ellipsis">
+            {who} asks <b>{model}</b> for advice
+          </span>
+          <span className="nw-fill" />
+          {step.state === "run" ? (
+            <span className="advisor-state">
+              <span className="spinner" /> Reviewing…
+            </span>
+          ) : step.state === "err" ? (
+            <span className="advisor-state o-err">{step.sub ? "Unavailable" : "Interrupted"}</span>
+          ) : (
+            <span className="advisor-state">Reviewed{took ? ` · ${took}` : ""}</span>
+          )}
+        </div>
+        <div className="palette-row dim">
+          Sent: the whole conversation so far{d?.inputTokens ? ` · ${tokens(d.inputTokens)} tokens` : ""}
+        </div>
+        {d?.result === "advice" && d.text && (
+          <div className="advisor-advice">
+            <Markdown text={d.text} />
+          </div>
+        )}
+        {d?.result === "encrypted" && (
+          <div className="palette-row">
+            Advice{d.outputTokens ? ` · ${tokens(d.outputTokens)} tokens` : ""}, encrypted: {model} writes it for Claude only,
+            and the transcript keeps just the ciphertext.
+          </div>
+        )}
+        {d?.result === "error" && (
+          <div className="palette-row o-err">
+            {ADVISOR_ERRORS[d.errorCode ?? ""] ?? `The advisor failed (${d.errorCode})`}; {who} carried on without advice.
+          </div>
+        )}
+        {cut && <div className="palette-row dim">The advice was cut at the advisor's token limit.</div>}
       </div>
     </div>
   );

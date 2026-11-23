@@ -666,6 +666,35 @@
   font-size: var(--fs-sm);
 }
 
+/* ---------- the advisor, consulted ---------- */
+
+.advisor-card {
+  width: min(620px, calc(100% - 40px));
+}
+.advisor-card .palette-input {
+  font-family: inherit;
+}
+.advisor-icon {
+  flex: none;
+  color: var(--tl-advisor);
+}
+.advisor-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+.advisor-advice {
+  max-height: 260px;
+  overflow: auto;
+  padding: 4px 12px 8px;
+  font-size: var(--fs-sm);
+  /* The card ignores the pointer so the editor stays usable; the advice still scrolls. */
+  pointer-events: auto;
+}
+
 /* ---------- presence: everyone else at work in the workspace ---------- */
 
 .presence-strip {

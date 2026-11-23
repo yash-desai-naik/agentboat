@@ -34,7 +34,7 @@ export interface Tab {
   agent: number;
 }
 
-export type Focus = "editor" | "terminal" | "search" | "git" | "chat" | "tasks" | "agents" | "network" | "ask" | "palette";
+export type Focus = "editor" | "terminal" | "search" | "git" | "chat" | "tasks" | "agents" | "network" | "ask" | "palette" | "advisor";
 
 /** Tools shown as a command run from the palette (a moment at the top of the editor). */
 export function isPaletteStep(s: Step): boolean {
@@ -275,6 +275,9 @@ export function derive(steps: Step[], cursor: number, head: Head | null, watch =
       }
       case "ask":
         if (mine) focus = "ask";
+        break;
+      case "advisor":
+        if (mine) focus = "advisor";
         break;
       case "skill":
       case "mcp":

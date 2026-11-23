@@ -25,6 +25,8 @@ function markVar(s: Step): string {
       return "--tl-git";
     case "search":
       return "--tl-search";
+    case "advisor":
+      return "--tl-advisor";
     default:
       return "--tl-other";
   }
@@ -34,7 +36,7 @@ function markVar(s: Step): string {
 function weight(s: Step): number {
   if (s.kind === "prompt") return 9;
   if (s.state === "err" || s.kind === "interrupt") return 8;
-  if (s.cat === "git") return 7;
+  if (s.cat === "git" || s.cat === "advisor") return 7;
   if (s.cat === "edit" || s.cat === "write") return 6;
   if (s.cat === "shell") return 5;
   if (s.cat === "read") return 4;

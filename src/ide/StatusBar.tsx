@@ -1,10 +1,10 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { Ide } from "../lib/derive";
-import { duration, shortTool, tokens } from "../lib/format";
+import { duration, modelName, shortTool, tokens } from "../lib/format";
 import { setWatch, useSession } from "../lib/store";
 import { agentName } from "../lib/derive";
-import type { Head } from "../lib/types";
-import { Branch } from "../ui/Icons";
+import type { Head, Meta } from "../lib/types";
+import { Advisor, Branch } from "../ui/Icons";
 import { useNow } from "../lib/clock";
 import { settings, useSettings } from "../lib/settings";
 import { contextWindow, resetTime, useLimitsInstalled, useUsage, type Cap, type Usage } from "../lib/usage";
@@ -121,9 +121,24 @@ export function StatusBar({ ide, head, onLimits }: { ide: Ide; head: Head | null
           {effort && <span className="sb-effort" data-tip="Reasoning effort of the last reply"> · {effort}</span>}
         </span>
       )}
+      {head?.meta.advisorModel && (
+        <span className="sb-item sb-advisor" data-tip={advisorTip(head.meta)}>
+          <Advisor size={12} /> {modelName(head.meta.advisorModel)}
+        </span>
+      )}
       {tipEl && <StatusTip el={tipEl} />}
     </footer>
   );
+}
+
+/** The advisor's setup and what it has cost so far. */
+function advisorTip(m: Meta): string {
+  const name = modelName(m.advisorModel);
+  const calls =
+    m.advisorCalls === 0
+      ? "Not called yet"
+      : `${m.advisorCalls} call${m.advisorCalls === 1 ? "" : "s"} (subagents' included): ${tokens(m.advisorInputTokens)} tokens read, ${tokens(m.advisorOutputTokens)} written`;
+  return `Advisor: Claude consults ${name} when it decides to (set with /advisor). ${calls}.`;
 }
 
 const hot = (pct: number) => (pct >= 80 ? " hot" : "");

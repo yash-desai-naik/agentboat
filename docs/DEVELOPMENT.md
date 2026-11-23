@@ -49,6 +49,13 @@ Rust, `src-tauri/src/` (the window-free core `agentboat_core`, plus `main.rs` an
     applied to the known text (allowing for CRLF files edited with LF strings) to give the before
     and after; the `originalFile` Claude Code logs with each edit result is the authoritative
     before, and corrects anything missed. A failed edit restores the text.
+  - The advisor (`/advisor`): Claude's `server_tool_use` named `advisor` is a step (`cat:
+    "advisor"`), completed by the `advisor_tool_result` on a later **assistant** line:
+    `advisor_result` (text), `advisor_redacted_result` (encrypted, only its size is kept) or
+    `advisor_tool_result_error` (`error_code`). Its tokens are the message's `usage.iterations`
+    entries of type `advisor_message`, given in order to the calls that didn't fail; every line of
+    the message repeats that usage, so it's kept per message id and counted once. `advisorModel`
+    on each reply is the session's advisor (none when off).
   - Prompts are user lines with `origin.kind == "human"` (or, in older transcripts, plain text that
     isn't a notification); slash commands are shown as typed. `[Request interrupted…]` ends the
     running tools.

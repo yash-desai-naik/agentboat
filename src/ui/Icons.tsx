@@ -152,6 +152,12 @@ export const Bell = ({ size = 16, className }: P) =>
     <path d="M4 11.5V7.2a4 4 0 0 1 8 0v4.3l1.2 1.3H2.8Z" />
     <path d="M6.6 14.2a1.5 1.5 0 0 0 2.8 0" />
   </>);
+/** The advisor: a stronger model Claude consults. */
+export const Advisor = ({ size = 16, className }: P) =>
+  svg(size, className, <>
+    <path d="M8 1.8a4.2 4.2 0 0 0-2.5 7.6c.5.4.7.9.7 1.5v.5h3.6v-.5c0-.6.2-1.1.7-1.5A4.2 4.2 0 0 0 8 1.8Z" />
+    <path d="M6.4 13.9h3.2M8 5v2.6" />
+  </>);
 export const Bolt = ({ size = 16, className }: P) => svg(size, className, <path d="M9 1.5 3.5 9H8l-1 5.5L12.5 7H8Z" />);
 export const Stop = ({ size = 16, className }: P) =>
   svg(size, className, <>
@@ -220,6 +226,8 @@ export function StepIcon({ cat, kind, size = 14 }: { cat: string; kind: string; 
       return <Question size={size} />;
     case "mcp":
       return <Plug size={size} />;
+    case "advisor":
+      return <Advisor size={size} />;
     default:
       return <Bolt size={size} />;
   }

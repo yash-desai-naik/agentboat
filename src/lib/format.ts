@@ -87,3 +87,12 @@ export function shortTool(name: string | null): string {
   if (tool.startsWith(server + "_")) tool = tool.slice(server.length + 1);
   return `${server}: ${tool}`;
 }
+
+/** `claude-fable-5-2` → `Fable 5.2`, `claude-opus-4-8-20260101` → `Opus 4.8`, `opus` → `Opus`. */
+export function modelName(id: string | null): string {
+  if (!id) return "";
+  const parts = id.replace(/^claude-/, "").split("-").filter((p) => !/^\d{8}$/.test(p));
+  const [family, ...version] = parts;
+  if (!family || version.some((v) => !/^\d+$/.test(v))) return id;
+  return [family[0].toUpperCase() + family.slice(1), version.join(".")].filter(Boolean).join(" ");
+}

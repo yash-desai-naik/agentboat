@@ -1,6 +1,6 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { agentHue, agentName, agentProgress, type AgentProgress } from "../lib/derive";
-import { clock, duration, shortTool } from "../lib/format";
+import { clock, duration, modelName, shortTool } from "../lib/format";
 import { type Anim, seek, setWatch, useSession } from "../lib/store";
 import { settings, useSettings } from "../lib/settings";
 import type { Head, Step } from "../lib/types";
@@ -147,12 +147,15 @@ const ChatItem = memo(function ChatItem({
       );
     default: {
       const took = step.end && step.end > step.ts ? duration(step.end - step.ts) : null;
+      const advisor = step.cat === "advisor";
+      // The advisor's outcome, as Claude Code words it: reviewed, or unavailable and why.
+      const outcome = advisor && step.state !== "run" ? (step.state === "err" ? (step.sub ? `Unavailable (${step.sub})` : "Interrupted") : "Reviewed") : null;
       const agentInfo = agentSteps !== null ? `${agentSteps} step${agentSteps === 1 ? "" : "s"}` : null;
       return (
         <div
           className={`${cls} tool cat-${step.cat}${step.agent > 0 ? " sub" : ""}`}
           onClick={() => seek(step.i)}
-          title={step.label}
+          title={advisor ? `Claude asked ${modelName(step.label)} for advice${step.sub && step.state === "ok" ? `: ${step.sub}` : ""}` : step.label}
           data-path={step.path ?? undefined}
         >
           <span className={`state ${step.state}`}>
@@ -160,7 +163,7 @@ const ChatItem = memo(function ChatItem({
           </span>
           <span className="tool-name">{toolName(step)}</span>
           {chip}
-          <span className="tool-label">{step.label}</span>
+          <span className="tool-label">{advisor ? modelName(step.label) + (step.sub && step.state === "ok" ? ` · ${step.sub}` : "") : step.label}</span>
           {step.delta && (step.cat === "edit" || step.cat === "write") && (
             <span className="delta">
               <span className="plus">+{step.delta[0]}</span> <span className="minus">−{step.delta[1]}</span>
@@ -176,6 +179,8 @@ const ChatItem = memo(function ChatItem({
             )
           ) : step.state === "run" ? (
             <span className="spinner" />
+          ) : outcome ? (
+            <span className={`tool-meta${step.state === "err" ? " o-err" : ""}`}>{[outcome, took].filter(Boolean).join(" · ")}</span>
           ) : (
             took && <span className="tool-meta">{took}</span>
           )}
@@ -188,6 +193,7 @@ const ChatItem = memo(function ChatItem({
 function toolName(s: Step): string {
   if (s.cat === "git" && s.git) return `git ${s.git.primary}`;
   if (s.cat === "mcp") return shortTool(s.tool).split(":")[0];
+  if (s.cat === "advisor") return "Advisor";
   return s.tool ?? s.cat;
 }
 

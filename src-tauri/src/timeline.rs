@@ -100,6 +100,14 @@ pub struct Meta {
     pub permission_mode: Option<String>,
     pub context_tokens: u64,
     pub output_tokens: u64,
+    /// The model Claude consults with the advisor tool (`/advisor`), as of the last reply; none
+    /// when it's off.
+    pub advisor_model: Option<String>,
+    /// Advisor calls so far, subagents' included.
+    pub advisor_calls: u32,
+    /// What those calls read (the conversation forwarded to the advisor) and wrote, in tokens.
+    pub advisor_input_tokens: u64,
+    pub advisor_output_tokens: u64,
     pub first_event: Option<i64>,
     pub last_event: Option<i64>,
     pub turn_started: Option<i64>,
@@ -151,6 +159,19 @@ pub struct Timeline {
     dirty: Vec<u32>,
     /// Subagent ids (from Agent results) → the step that started them.
     pub agent_steps: HashMap<String, u32>,
+    /// API message id → its advisor calls, for giving each its tokens.
+    advisor_msgs: HashMap<String, AdvisorMsg>,
+}
+
+/// The advisor calls in one API message. Every line of the message carries the message's usage,
+/// even lines written before the advisor was called, so the latest usage seen is kept and given
+/// out again whenever the calls change.
+#[derive(Default)]
+struct AdvisorMsg {
+    steps: Vec<u32>,
+    iters: Vec<Iteration>,
+    /// Tokens already counted in [`Meta`]: (read, written).
+    counted: (u64, u64),
 }
 
 // ---------- the line format (only what's read) ----------
@@ -179,6 +200,8 @@ struct Line<'a> {
     #[serde(rename = "permissionMode")]
     permission_mode: Option<String>,
     effort: Option<String>,
+    #[serde(rename = "advisorModel")]
+    advisor_model: Option<String>,
     origin: Option<Origin>,
     #[serde(rename = "toolUseResult", borrow)]
     tool_use_result: Option<&'a RawValue>,
@@ -191,6 +214,7 @@ struct Origin {
 
 #[derive(Deserialize)]
 struct Message {
+    id: Option<String>,
     model: Option<String>,
     content: Option<Value>,
     usage: Option<Usage>,
@@ -204,6 +228,27 @@ struct Usage {
     output_tokens: u64,
     cache_read_input_tokens: u64,
     cache_creation_input_tokens: u64,
+    /// The model passes of a message that called a server tool: `message` (Claude) and
+    /// `advisor_message` (the advisor). The top-level counts add up Claude's passes only.
+    iterations: Option<Vec<Iteration>>,
+}
+
+#[derive(Deserialize, Default, Clone, PartialEq)]
+#[serde(default)]
+struct Iteration {
+    #[serde(rename = "type")]
+    kind: String,
+    model: Option<String>,
+    input_tokens: u64,
+    output_tokens: u64,
+    cache_read_input_tokens: u64,
+    cache_creation_input_tokens: u64,
+}
+
+impl Iteration {
+    fn read(&self) -> u64 {
+        self.input_tokens + self.cache_read_input_tokens + self.cache_creation_input_tokens
+    }
 }
 
 /// The timestamp of a raw line without parsing it, for merging transcripts by time.
@@ -311,7 +356,7 @@ impl Timeline {
             {
                 self.meta.effort = Some(e);
             }
-            self.assistant(src, ts, msg, l.cwd);
+            self.assistant(src, ts, msg, l.cwd, l.advisor_model);
         }
     }
 
@@ -446,17 +491,45 @@ impl Timeline {
 
     // ---------- assistant lines: what Claude says and the tools it calls ----------
 
-    fn assistant(&mut self, src: &mut SourceState, ts: i64, msg: Message, cwd: Option<String>) {
+    fn assistant(
+        &mut self,
+        src: &mut SourceState,
+        ts: i64,
+        msg: Message,
+        cwd: Option<String>,
+        advisor_model: Option<String>,
+    ) {
         let main = src.agent == 0;
         if main {
             if let Some(m) = msg.model.as_ref().filter(|m| !m.starts_with('<')) {
                 self.meta.model = Some(m.clone());
+                // Logged on every real reply while the advisor is on, and missing once it's off.
+                self.meta.advisor_model = advisor_model.clone().filter(|m| !m.is_empty());
             }
             if let Some(u) = &msg.usage {
-                self.meta.context_tokens =
-                    u.input_tokens + u.cache_read_input_tokens + u.cache_creation_input_tokens;
+                // After an advisor call the top-level counts add up both of Claude's passes;
+                // the context is what the last pass read.
+                let last = u.iterations.iter().flatten().rev().find(|i| i.kind == "message");
+                self.meta.context_tokens = match last {
+                    Some(it) => it.read(),
+                    None => u.input_tokens + u.cache_read_input_tokens + u.cache_creation_input_tokens,
+                };
                 self.meta.output_tokens += u.output_tokens;
             }
+        }
+        let msg_id = msg.id.clone().filter(|id| !id.is_empty());
+        let advisor_iters: Option<Vec<Iteration>> = msg.usage.as_ref().and_then(|u| {
+            let v: Vec<Iteration> = u
+                .iterations
+                .iter()
+                .flatten()
+                .filter(|i| i.kind == "advisor_message")
+                .cloned()
+                .collect();
+            (!v.is_empty()).then_some(v)
+        });
+        if let (Some(id), Some(iters)) = (&msg_id, advisor_iters) {
+            self.advisor_msgs.entry(id.clone()).or_default().iters = iters;
         }
         let Some(Value::Array(blocks)) = msg.content else {
             return;
@@ -494,8 +567,29 @@ impl Timeline {
                         src.tools.insert(id, i);
                     }
                 }
+                // A tool the API runs itself. Its result comes back in a later assistant line.
+                Some("server_tool_use")
+                    if b.get("name").and_then(Value::as_str) == Some("advisor") =>
+                {
+                    src.ended = false;
+                    if main {
+                        self.meta.last_block = Some("tool");
+                    }
+                    let id = b.get("id").and_then(Value::as_str).unwrap_or("").to_string();
+                    let i = self.advisor_use(src, ts, advisor_model.as_deref());
+                    if !id.is_empty() {
+                        src.tools.insert(id, i);
+                    }
+                    if let Some(m) = &msg_id {
+                        self.advisor_msgs.entry(m.clone()).or_default().steps.push(i);
+                    }
+                }
+                Some("advisor_tool_result") => self.advisor_result(src, ts, &b),
                 _ => {}
             }
+        }
+        if let Some(m) = &msg_id {
+            self.advisor_usage(m);
         }
         if msg.stop_reason.as_deref() == Some("end_turn") {
             src.ended = true;
@@ -792,6 +886,107 @@ impl Timeline {
         if failed {
             set(&mut self.details[i], "error", json!(truncate(&text, 16 * 1024)));
         }
+    }
+
+    // ---------- the advisor (`/advisor`): a stronger model Claude consults ----------
+
+    /// Claude calls the advisor. The call has no input: the API forwards the whole conversation
+    /// to the advisor model.
+    fn advisor_use(&mut self, src: &SourceState, ts: i64, model: Option<&str>) -> u32 {
+        let model = model.filter(|m| !m.is_empty());
+        let mut step = Step::new(ts, "tool", "advisor", model.unwrap_or("advisor").to_string());
+        step.tool = Some("advisor".into());
+        self.meta.advisor_calls += 1;
+        let detail = json!({ "kind": "advisor", "model": model, "result": null });
+        self.push(src, step, detail)
+    }
+
+    /// The advisor's answer. Advice from older models comes back as text. Newer models' advice
+    /// is encrypted: only Claude reads it, and the transcript keeps just the ciphertext. A
+    /// failed call is an error code; Claude carries on without advice.
+    fn advisor_result(&mut self, src: &SourceState, ts: i64, block: &Value) {
+        let Some(id) = block.get("tool_use_id").and_then(Value::as_str) else {
+            return;
+        };
+        let Some(&i) = src.tools.get(id) else { return };
+        let i = i as usize;
+        let c = block.get("content").cloned().unwrap_or(Value::Null);
+        let s = |k: &str| c.get(k).and_then(Value::as_str);
+        let d = &mut self.details[i];
+        let (state, sub) = match s("type") {
+            Some("advisor_result") => {
+                let text = s("text").unwrap_or("");
+                set(d, "result", json!("advice"));
+                set(d, "text", json!(truncate(text, TEXT_CAP)));
+                // Its first line for the chat row, without Markdown's emphasis and code marks.
+                let first = one_line(&text.replace("**", "").replace('`', ""), 140);
+                ("ok", Some(first).filter(|l| !l.is_empty()))
+            }
+            Some("advisor_redacted_result") => {
+                set(d, "result", json!("encrypted"));
+                set(d, "encryptedBytes", json!(s("encrypted_content").map_or(0, str::len)));
+                ("ok", None)
+            }
+            Some("advisor_tool_result_error") => {
+                let code = s("error_code").unwrap_or("unavailable");
+                set(d, "result", json!("error"));
+                set(d, "errorCode", json!(code));
+                ("err", Some(code.to_string()))
+            }
+            other => {
+                set(d, "result", json!(other.unwrap_or("unknown")));
+                ("ok", None)
+            }
+        };
+        set(d, "stopReason", json!(s("stop_reason")));
+        let step = &mut self.steps[i];
+        step.state = state;
+        step.sub = sub;
+        step.end = Some(ts);
+        step.v += 1;
+        self.dirty.push(i as u32);
+    }
+
+    /// Gives a message's advisor calls their tokens: the n-th `advisor_message` pass to the n-th
+    /// call that didn't fail (a failed call may have had no pass), and keeps the session's totals.
+    fn advisor_usage(&mut self, msg_id: &str) {
+        let Some(m) = self.advisor_msgs.get_mut(msg_id) else { return };
+        let mut passes = m.iters.iter();
+        let (mut read, mut wrote) = (0u64, 0u64);
+        for &si in &m.steps {
+            let si = si as usize;
+            if self.steps[si].state == "err" {
+                // Given a pass before its failure was known: that pass is the next call's.
+                if let Value::Object(d) = &mut self.details[si]
+                    && d.remove("inputTokens").is_some()
+                {
+                    d.remove("outputTokens");
+                    self.steps[si].v += 1;
+                    self.dirty.push(si as u32);
+                }
+                continue;
+            }
+            let Some(it) = passes.next() else { break };
+            read += it.read();
+            wrote += it.output_tokens;
+            let d = &mut self.details[si];
+            let before = (d.get("inputTokens").cloned(), d.get("outputTokens").cloned());
+            if before == (Some(json!(it.read())), Some(json!(it.output_tokens))) {
+                continue;
+            }
+            set(d, "inputTokens", json!(it.read()));
+            set(d, "outputTokens", json!(it.output_tokens));
+            if let Some(model) = &it.model {
+                set(d, "model", json!(model));
+                self.steps[si].label = model.clone();
+            }
+            self.steps[si].v += 1;
+            self.dirty.push(si as u32);
+        }
+        let (r0, w0) = m.counted;
+        m.counted = (read, wrote);
+        self.meta.advisor_input_tokens = self.meta.advisor_input_tokens + read - r0;
+        self.meta.advisor_output_tokens = self.meta.advisor_output_tokens + wrote - w0;
     }
 
     fn read_result(
@@ -1585,6 +1780,114 @@ The response body was not retrieved.", false, json!({}));
         // Resumed (SendMessage): working again.
         tool(&mut t, &mut src, "g2", "Grep", json!({"pattern": "fn lex"}));
         assert!(!src.ended);
+    }
+
+    /// An assistant line of API message `id`, the way Claude Code logs it with the advisor on:
+    /// every line of the message carries the message's whole usage.
+    fn reply(id: &str, ts: &str, advisor: Option<&str>, iters: Value, content: Value) -> String {
+        let mut l = json!({
+            "type": "assistant",
+            "timestamp": ts,
+            "message": {
+                "id": id, "role": "assistant", "model": "claude-opus-5-5", "content": content,
+                "usage": {
+                    "input_tokens": 4, "cache_read_input_tokens": 178811,
+                    "cache_creation_input_tokens": 13537, "output_tokens": 3816,
+                    "iterations": iters,
+                },
+            },
+        });
+        if let Some(a) = advisor {
+            l["advisorModel"] = json!(a);
+        }
+        l.to_string()
+    }
+
+    fn passes(advisor: &[(u64, u64)]) -> Value {
+        let mut v = vec![json!({"type": "message", "input_tokens": 2, "cache_read_input_tokens": 83420, "cache_creation_input_tokens": 11971, "output_tokens": 618})];
+        for (inp, out) in advisor {
+            v.push(json!({"type": "advisor_message", "model": "claude-fable-5-2", "input_tokens": inp, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "output_tokens": out}));
+            v.push(json!({"type": "message", "input_tokens": 2, "cache_read_input_tokens": 95391, "cache_creation_input_tokens": 1566, "output_tokens": 3198}));
+        }
+        Value::Array(v)
+    }
+
+    #[test]
+    fn an_encrypted_advisor_call_as_claude_code_logs_it() {
+        let mut t = Timeline::default();
+        let mut src = SourceState::new(0, false);
+        prompt(&mut t, &mut src, "plan the migration");
+        let it = passes(&[(97275, 3815)]);
+        let fable = Some("claude-fable-5-2");
+        // The thinking before the call already carries the advisor's pass.
+        t.ingest(&mut src, &reply("m1", "2026-11-23T04:57:37.504Z", fable, it.clone(), json!([{"type": "thinking", "thinking": "", "signature": "x"}])));
+        t.ingest(&mut src, &reply("m1", "2026-11-23T04:57:37.543Z", fable, it.clone(), json!([{"type": "server_tool_use", "id": "srvtoolu_1", "name": "advisor", "input": {}}])));
+        let s = &t.steps[1];
+        assert_eq!((s.kind, s.cat, s.state), ("tool", "advisor", "run"));
+        assert_eq!(s.label, "claude-fable-5-2");
+        assert_eq!(t.meta.last_block, Some("tool"));
+        assert_eq!(t.detail(1).unwrap()["inputTokens"], 97275);
+        assert_eq!(t.detail(1).unwrap()["outputTokens"], 3815);
+        t.ingest(&mut src, &reply("m1", "2026-11-23T04:58:22.135Z", fable, it.clone(), json!([{"type": "advisor_tool_result", "tool_use_id": "srvtoolu_1", "content": {"type": "advisor_redacted_result", "encrypted_content": "ErsVCioIFhgC"}}])));
+        let s = &t.steps[1];
+        assert_eq!(s.state, "ok");
+        assert_eq!(s.end.unwrap() - s.ts, 44_592);
+        let d = t.detail(1).unwrap();
+        assert_eq!(d["result"], "encrypted");
+        assert_eq!(d["encryptedBytes"], 12);
+        assert!(d.get("text").is_none());
+        t.ingest(&mut src, &reply("m1", "2026-11-23T04:58:28.402Z", fable, it, json!([{"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "ls"}}])));
+        assert_eq!(t.steps.len(), 3);
+        // Counted once, however many lines the message has.
+        assert_eq!((t.meta.advisor_calls, t.meta.advisor_input_tokens, t.meta.advisor_output_tokens), (1, 97275, 3815));
+        assert_eq!(t.meta.advisor_model.as_deref(), Some("claude-fable-5-2"));
+        // The context is the last pass's, not both passes added up.
+        assert_eq!(t.meta.context_tokens, 2 + 95391 + 1566);
+    }
+
+    #[test]
+    fn advice_in_plain_text_and_a_failed_call() {
+        let mut t = Timeline::default();
+        let mut src = SourceState::new(0, false);
+        prompt(&mut t, &mut src, "go");
+        // The first call failed (no advisor pass), the second gave advice.
+        let it = passes(&[(5000, 300)]);
+        let m = Some("claude-opus-4-8");
+        let call = |id: &str| json!([{"type": "server_tool_use", "id": id, "name": "advisor", "input": {}}]);
+        t.ingest(&mut src, &reply("m2", "2026-11-23T05:00:00.000Z", m, it.clone(), call("srvtoolu_a")));
+        t.ingest(&mut src, &reply("m2", "2026-11-23T05:00:01.000Z", m, it.clone(), json!([{"type": "advisor_tool_result", "tool_use_id": "srvtoolu_a", "content": {"type": "advisor_tool_result_error", "error_code": "overloaded"}}])));
+        t.ingest(&mut src, &reply("m2", "2026-11-23T05:00:02.000Z", m, it.clone(), call("srvtoolu_b")));
+        t.ingest(&mut src, &reply("m2", "2026-11-23T05:00:09.000Z", m, it, json!([{"type": "advisor_tool_result", "tool_use_id": "srvtoolu_b", "content": {"type": "advisor_result", "text": "Close the **input** channel first,\nthen wait on the `WaitGroup`.", "stop_reason": "end_turn"}}])));
+        let (a, b) = (&t.steps[1], &t.steps[2]);
+        assert_eq!((a.state, a.sub.as_deref()), ("err", Some("overloaded")));
+        assert_eq!(t.detail(1).unwrap()["errorCode"], "overloaded");
+        assert!(t.detail(1).unwrap().get("inputTokens").is_none());
+        assert_eq!((b.state, b.sub.as_deref()), ("ok", Some("Close the input channel first,")));
+        let d = t.detail(2).unwrap();
+        assert_eq!(d["result"], "advice");
+        assert_eq!(d["text"], "Close the **input** channel first,\nthen wait on the `WaitGroup`.");
+        assert_eq!(d["stopReason"], "end_turn");
+        assert_eq!(d["inputTokens"], 5000);
+        assert_eq!((t.meta.advisor_calls, t.meta.advisor_input_tokens), (2, 5000));
+    }
+
+    #[test]
+    fn the_advisor_model_follows_the_last_reply() {
+        let mut t = Timeline::default();
+        let mut src = SourceState::new(0, false);
+        let say = |a: Option<&str>| reply("m", "2026-11-23T05:00:00.000Z", a, json!([]), json!([{"type": "text", "text": "ok"}]));
+        t.ingest(&mut src, &say(Some("claude-fable-5-2")));
+        assert_eq!(t.meta.advisor_model.as_deref(), Some("claude-fable-5-2"));
+        // `/advisor off`.
+        t.ingest(&mut src, &say(None));
+        assert_eq!(t.meta.advisor_model, None);
+        // A subagent's calls are steps of its own, and count toward the session's total.
+        let mut sub = SourceState::new(1, true);
+        t.ingest(&mut sub, &reply("s", "2026-11-23T05:00:00.000Z", Some("claude-fable-5-2"), json!([]), json!([{"type": "server_tool_use", "id": "srvtoolu_s", "name": "advisor", "input": {}}])).replace(r#""type":"assistant""#, r#""type":"assistant","isSidechain":true"#));
+        let s = t.steps.last().unwrap();
+        assert_eq!((s.agent, s.cat), (1, "advisor"));
+        assert_eq!(t.meta.advisor_calls, 1);
+        assert_eq!(t.meta.advisor_model, None);
     }
 
     #[test]

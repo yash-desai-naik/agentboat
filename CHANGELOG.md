@@ -6,6 +6,25 @@ All notable changes to AgentBoat (called Ccboat up to 0.5.1) are listed here. Th
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-23
+
+### Added
+
+- **The advisor.** When Claude consults its advisor (`/advisor`, e.g. Fable 5.2), the call is a step
+  of its own: a row in the Claude panel ("Advisor · Fable 5.2 · Reviewed · 45s"), a magenta mark on
+  the timeline, and a card over the editor saying what was sent (the whole conversation, in
+  tokens) and what came back. Advice from older advisor models is shown in full; newer models'
+  advice is encrypted for Claude only, so the card gives its size. A failed call says why
+  ("overloaded", "rate-limited"…). Subagents' calls show up too. Claude Code writes a call to the
+  transcript once the advisor has answered, so in a running session it appears then, with how long
+  it took.
+- The status bar shows the advisor model while it's on, with its calls and tokens so far.
+
+### Fixed
+
+- After an advisor call, the context meter no longer counts Claude's two passes over the
+  conversation twice.
+
 ## [0.7.0] - 2026-11-19
 
 ### Added
@@ -190,6 +209,7 @@ The first release: watch a Claude Code session as a read-only IDE, live or repla
   minimized. Never writes anywhere and never uses the network.
 
 [Unreleased]: https://github.com/yash-desai-naik/agentboat/compare/v0.7.0...HEAD
+[0.8.0]: https://github.com/yash-desai-naik/agentboat/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/yash-desai-naik/agentboat/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/yash-desai-naik/agentboat/releases/tag/v0.6.0
 [0.5.1]: https://github.com/yash-desai-naik/ccboat/compare/v0.5.0...v0.5.1
