@@ -7,6 +7,9 @@
 //!   transcript, appended line by line.
 //! - `.../<sessionId>/subagents/agent-<id>.jsonl` and `.meta.json`: each subagent's transcript and
 //!   its description, type and whether it has finished.
+//! - `.../<sessionId>/subagents/workflows/wf_<run>/`: one folder per workflow run (the Workflow
+//!   tool): its agents' `agent-<id>.jsonl` and `.meta.json` (the script's label and phase), and
+//!   `journal.jsonl`, the run's own record: `launched`, then `started` and `result` per agent.
 //!
 //! `CLAUDE_CONFIG_DIR` moves `~/.claude`, as it does for Claude Code itself.
 
@@ -102,6 +105,8 @@ pub struct AgentMeta {
     pub description: Option<String>,
     pub model: Option<String>,
     pub finished: bool,
+    /// A workflow agent's phase, as the script named it (`phase()` or the agent's `phase` option).
+    pub workflow_phase: Option<String>,
 }
 
 /// The last folder of a path, for display (`D:\projects\fileboat` → `fileboat`).

@@ -609,6 +609,34 @@
   color: var(--text-2);
   font-family: var(--font-mono);
 }
+/* A workflow run's agents, under the run */
+.workflow-title {
+  width: 100%;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.workflow-title:hover {
+  color: var(--text-2);
+}
+.workflow-title .ellipsis {
+  min-width: 0;
+}
+.workflow-title .spinner {
+  width: 8px;
+  height: 8px;
+  flex: none;
+}
+.workflow-title .o-err {
+  text-transform: none;
+  font-weight: 500;
+}
+.workflow-phase {
+  margin: 2px 12px 6px 14px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
 
 /* ---------- editor ---------- */
 

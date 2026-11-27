@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { agentHue, agentName, agentProgress } from "../lib/derive";
+import { agentHue, agentKind, agentName, agentProgress } from "../lib/derive";
 import { setWatch } from "../lib/store";
 import type { Head, Step } from "../lib/types";
 import { Chevron, Eye } from "./Icons";
@@ -59,7 +59,6 @@ export function WatchMenu({ head, steps, cursor, watch }: { head: Head | null; s
 export function WatchBar({ head, steps, cursor, watch }: { head: Head | null; steps: Step[]; cursor: number; watch: number }) {
   if (!watch) return null;
   const p = agentProgress(steps, cursor, head, watch);
-  const a = head?.agents[watch - 1];
   return (
     <div className="watch-bar" style={{ ["--hue" as string]: agentHue(watch) }}>
       <Eye size={13} />
@@ -67,7 +66,7 @@ export function WatchBar({ head, steps, cursor, watch }: { head: Head | null; st
         Watching <b>{agentName(head, watch)}</b>'s screen
       </span>
       <span className="dim">
-        {a?.kind ?? "agent"} · {p.count} step{p.count === 1 ? "" : "s"}
+        {agentKind(head, watch)} · {p.count} step{p.count === 1 ? "" : "s"}
         {p.later > 0 ? ` · ${p.later} more later` : ""} · {p.state}
       </span>
       <span className="watch-fill" />

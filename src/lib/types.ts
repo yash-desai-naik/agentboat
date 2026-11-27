@@ -33,6 +33,7 @@ export type StepCat =
   | "skill"
   | "mcp"
   | "advisor"
+  | "workflow"
   | "other";
 
 export interface Step {
@@ -53,6 +54,9 @@ export interface Step {
   git: GitInfo | null;
   tasks: TaskItem[] | null;
   bg: boolean;
+  /** How a background task ended, from its completion notification (`completed`, `failed`,
+   *  `killed`, `stopped`); null while it runs or if none came. */
+  bgStatus: string | null;
   delta: [number, number] | null;
   created: boolean;
   /** Response size in bytes (MCP, web and other tools). */
@@ -93,7 +97,12 @@ export interface AgentInfo {
   description: string | null;
   kind: string | null;
   finished: boolean;
+  /** The Agent or Workflow step that started it. */
   step: number | null;
+  /** The workflow run it belongs to (`wf_…`), for a workflow's agents. */
+  run: string | null;
+  /** Its phase in that workflow. */
+  phase: string | null;
 }
 
 export type SessionStatus = "working" | "waiting" | "idle" | "active" | "ended";
@@ -148,7 +157,7 @@ export interface Hunk {
 
 /** A step's detail; which fields are set depends on `kind`. */
 export interface Detail {
-  kind: "read" | "edit" | "shell" | "search" | "web" | "agent" | "task" | "ask" | "advisor" | "generic";
+  kind: "read" | "edit" | "shell" | "search" | "web" | "agent" | "task" | "ask" | "advisor" | "workflow" | "generic";
   path?: string;
   // read
   content?: string;
@@ -204,4 +213,23 @@ export interface Detail {
   /** The conversation forwarded to the advisor, and the advice it wrote, in tokens. */
   inputTokens?: number;
   outputTokens?: number;
+  // workflow (`taskId` above is the run's background task)
+  name?: string | null;
+  scriptPath?: string | null;
+  script?: string | null;
+  resumeFromRunId?: string | null;
+  args?: unknown;
+  runId?: string | null;
+  workflowName?: string | null;
+  summary?: string | null;
+  transcriptDir?: string | null;
+  /** The copy of the script Claude Code saved for the run. */
+  savedScript?: string | null;
+  /** The launch's own status (`async_launched`). */
+  launch?: string | null;
+  // any background task, from its completion notification
+  taskStatus?: string | null;
+  taskSummary?: string | null;
+  /** What a workflow's script returned. */
+  taskResult?: string;
 }

@@ -169,6 +169,16 @@ export const Stop = ({ size = 16, className }: P) =>
     <circle cx="8" cy="8" r="6" />
     <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" />
   </>);
+/** A workflow: a script fanning work out to agents. */
+export const Workflow = ({ size = 16, className }: P) =>
+  svg(size, className, <>
+    <rect x="1.5" y="6" width="4" height="4" rx="1" />
+    <circle cx="12.5" cy="3.5" r="1.7" />
+    <circle cx="12.5" cy="8" r="1.7" />
+    <circle cx="12.5" cy="12.5" r="1.7" />
+    <path d="M5.5 8h5.3M7.5 8c1 0 1-4.5 3.3-4.5M7.5 8c1 0 1 4.5 3.3 4.5" />
+  </>);
+
 export const Layers = ({ size = 16, className }: P) =>
   svg(size, className, <>
     <path d="m8 2 6 3-6 3-6-3Z" />
@@ -233,6 +243,8 @@ export function StepIcon({ cat, kind, size = 14 }: { cat: string; kind: string; 
       return <Plug size={size} />;
     case "advisor":
       return <Advisor size={size} />;
+    case "workflow":
+      return <Workflow size={size} />;
     default:
       return <Bolt size={size} />;
   }

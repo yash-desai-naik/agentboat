@@ -72,8 +72,11 @@ pub struct Step {
     pub git: Option<GitInfo>,
     /// The task list after this step, for steps that change it.
     pub tasks: Option<Vec<TaskItem>>,
-    /// Started with `run_in_background`.
+    /// Started with `run_in_background` (or, like a workflow, always runs in the background).
     pub bg: bool,
+    /// How a background task ended, from its completion notification: `completed`, `failed`,
+    /// `killed` or `stopped`. None while it runs, or if no notification came.
+    pub bg_status: Option<String>,
     /// Lines added and removed, for edits and writes.
     pub delta: Option<[u32; 2]>,
     /// A write that created the file.
@@ -159,6 +162,8 @@ pub struct Timeline {
     dirty: Vec<u32>,
     /// Subagent ids (from Agent results) → the step that started them.
     pub agent_steps: HashMap<String, u32>,
+    /// Workflow run ids (`wf_…`, from Workflow results) → the step that launched the run.
+    pub workflow_steps: HashMap<String, u32>,
     /// API message id → its advisor calls, for giving each its tokens.
     advisor_msgs: HashMap<String, AdvisorMsg>,
 }
@@ -205,6 +210,12 @@ struct Line<'a> {
     origin: Option<Origin>,
     #[serde(rename = "toolUseResult", borrow)]
     tool_use_result: Option<&'a RawValue>,
+    /// `queue-operation` lines: `enqueue`, `remove`, …
+    operation: Option<String>,
+    /// `queue-operation` lines: what was queued (a task notification, a prompt typed ahead). Kept
+    /// raw: other line types may use the name for something else.
+    #[serde(borrow)]
+    content: Option<&'a RawValue>,
 }
 
 #[derive(Deserialize)]
@@ -311,6 +322,16 @@ impl Timeline {
                         Step::new(ts, "compact", "", "Conversation compacted".into()),
                         Value::Null,
                     );
+                }
+                return;
+            }
+            // A background task's completion notification is queued for Claude as it arrives,
+            // whether or not Claude is busy; this is its earliest record.
+            Some("queue-operation") => {
+                if l.operation.as_deref() == Some("enqueue")
+                    && let Some(text) = l.content.and_then(|c| serde_json::from_str::<String>(c.get()).ok())
+                {
+                    self.notification(src, ts.unwrap_or(0), &text);
                 }
                 return;
             }
@@ -426,6 +447,10 @@ impl Timeline {
             self.interrupt(src, ts, text);
             return;
         }
+        if text.trim_start().starts_with("<task-notification>") {
+            self.notification(src, ts, text);
+            return;
+        }
         if src.agent != 0 {
             // A subagent's first message is its task; anything after is the session talking to it.
             if !src.seen_prompt {
@@ -467,6 +492,44 @@ impl Timeline {
         let mut s = Step::new(ts, "prompt", "", one_line(&shown, 200));
         s.text = Some(truncate(&shown, SAY_CAP));
         self.push(src, s, Value::Null);
+    }
+
+    /// A background task's completion notification (`<task-notification>` with `<tool-use-id>`,
+    /// `<status>`, `<summary>`): how the tool call that started it ended. The same task can
+    /// notify more than once (an agent that's sent more work); the latest status wins, the first
+    /// time it ended stays its end.
+    fn notification(&mut self, src: &SourceState, ts: i64, text: &str) {
+        let Some(id) = between(text, "<tool-use-id>", "</tool-use-id>") else {
+            return;
+        };
+        let Some(&i) = src.tools.get(id.trim()) else {
+            return;
+        };
+        let Some(status) = between(text, "<status>", "</status>").map(str::trim) else {
+            return;
+        };
+        let i = i as usize;
+        let summary = between(text, "<summary>", "</summary>").map(str::trim);
+        let step = &mut self.steps[i];
+        if step.bg_status.as_deref() == Some(status) {
+            return;
+        }
+        step.bg_status = Some(status.to_string());
+        if step.cat == "workflow" {
+            step.end = Some(ts);
+            if status != "completed" {
+                step.state = "err";
+            }
+        }
+        step.v += 1;
+        self.dirty.push(i as u32);
+        let d = &mut self.details[i];
+        set(d, "taskStatus", json!(status));
+        set(d, "taskSummary", json!(summary));
+        // A workflow's notification carries what its script returned.
+        if let Some(r) = between(text, "<result>", "</result>").map(str::trim).filter(|r| !r.is_empty()) {
+            set(d, "taskResult", json!(truncate(r, TEXT_CAP)));
+        }
     }
 
     fn interrupt(&mut self, src: &SourceState, ts: i64, text: &str) {
@@ -675,6 +738,20 @@ impl Timeline {
                     "prompt": s("prompt").map(|p| truncate(p, TEXT_CAP)),
                 })
             }
+            "workflow" => {
+                // It always runs in the background: the call returns once the run is launched.
+                step.bg = true;
+                let script = s("script");
+                json!({
+                    "kind": "workflow",
+                    "name": s("name"),
+                    "description": script.and_then(|sc| script_meta(sc, "description")),
+                    "scriptPath": s("scriptPath"),
+                    "script": script.map(|sc| truncate(sc, TEXT_CAP)),
+                    "resumeFromRunId": s("resumeFromRunId"),
+                    "args": input.get("args").map(|a| capped_json(a, 64 * 1024)),
+                })
+            }
             "task" => {
                 self.track_tasks(name, input);
                 step.tasks = Some(self.tasks.clone());
@@ -854,6 +931,29 @@ impl Timeline {
                     set(&mut self.details[i], "agentId", json!(agent_id));
                 }
                 set(&mut self.details[i], "output", json!(truncate(&text, TEXT_CAP)));
+            }
+            "workflow" => {
+                let get = |k: &str| tur.and_then(|t| t.get(k)).and_then(Value::as_str);
+                if let Some(run) = get("runId") {
+                    self.workflow_steps.insert(run.to_string(), i as u32);
+                }
+                if let Some(name) = get("workflowName").filter(|n| !n.is_empty()) {
+                    self.steps[i].label = one_line(name, 200);
+                }
+                self.steps[i].sub = get("summary").map(|s| one_line(s, 200));
+                let d = &mut self.details[i];
+                for (from, to) in [
+                    ("runId", "runId"),
+                    ("taskId", "taskId"),
+                    ("workflowName", "workflowName"),
+                    ("summary", "summary"),
+                    ("transcriptDir", "transcriptDir"),
+                    ("scriptPath", "savedScript"),
+                    ("status", "launch"),
+                ] {
+                    set(d, to, json!(get(from)));
+                }
+                set(d, "output", json!(truncate(&text, TEXT_CAP)));
             }
             "search" => {
                 let d = &mut self.details[i];
@@ -1209,6 +1309,7 @@ impl Step {
             git: None,
             tasks: None,
             bg: false,
+            bg_status: None,
             delta: None,
             created: false,
             size: None,
@@ -1238,6 +1339,7 @@ pub fn category(name: &str) -> &'static str {
         "Grep" | "Glob" => "search",
         "WebFetch" | "WebSearch" => "web",
         "Agent" | "Task" => "agent",
+        "Workflow" => "workflow",
         "TodoWrite" | "TaskCreate" | "TaskUpdate" => "task",
         "AskUserQuestion" => "ask",
         "Skill" => "skill",
@@ -1493,6 +1595,79 @@ fn file_name(p: &str) -> &str {
         .unwrap_or(p)
 }
 
+/// A workflow script's name from its file: `review-wf_0001-aa.js` (a run's saved copy) and
+/// `review.js` are both `review`.
+fn workflow_file_name(path: &str) -> String {
+    let f = file_name(path);
+    let f = f.strip_suffix(".js").or_else(|| f.strip_suffix(".mjs")).unwrap_or(f);
+    match f.rfind("-wf_") {
+        Some(k) if k > 0 => f[..k].to_string(),
+        _ => f.to_string(),
+    }
+}
+
+/// A string field of a workflow script's `export const meta = { … }`, which Claude Code requires
+/// to be a plain literal at the top of the script: enough to read `name` and `description`
+/// without running anything.
+fn script_meta(script: &str, key: &str) -> Option<String> {
+    let start = script.find("export const meta")?;
+    let body = &script[start..];
+    let body = &body[..body.len().min(4096)];
+    let mut from = 0;
+    while let Some(k) = body[from..].find(key) {
+        let at = from + k;
+        from = at + key.len();
+        // A key on its own: not the tail of another name (`fullname`) nor a value.
+        let before = body[..at].chars().next_back();
+        if before.is_some_and(|c| c.is_alphanumeric() || c == '_' || c == '$') {
+            continue;
+        }
+        // `name:`, or a quoted key (`"name":`).
+        let rest = &body[from..];
+        let rest = rest.strip_prefix(['"', '\'']).unwrap_or(rest).trim_start();
+        let Some(rest) = rest.strip_prefix(':') else { continue };
+        let rest = rest.trim_start();
+        let quote = rest.chars().next()?;
+        if !matches!(quote, '\'' | '"' | '`') {
+            return None;
+        }
+        let mut out = String::new();
+        let mut chars = rest[1..].chars();
+        while let Some(c) = chars.next() {
+            match c {
+                '\\' => out.extend(chars.next()),
+                c if c == quote => {
+                    let out = out.trim().to_string();
+                    return (!out.is_empty()).then_some(out);
+                }
+                c => out.push(c),
+            }
+        }
+        return None;
+    }
+    None
+}
+
+/// `/loop` pacing itself: when Claude asked to be woken, and why (`in 20m · CI still running`).
+fn wakeup_label(i: &Value) -> String {
+    if i.get("stop").and_then(Value::as_bool) == Some(true) {
+        return "Stop the loop".into();
+    }
+    let secs = i.get("delaySeconds").and_then(Value::as_f64).unwrap_or(0.0).max(0.0) as u64;
+    let when = if secs < 60 {
+        format!("in {secs}s")
+    } else if secs < 3600 || !secs.is_multiple_of(3600) {
+        let m = secs.div_ceil(60);
+        if m >= 60 { format!("in {}h {}m", m / 60, m % 60) } else { format!("in {m}m") }
+    } else {
+        format!("in {}h", secs / 3600)
+    };
+    match i.get("reason").and_then(Value::as_str).map(str::trim).filter(|r| !r.is_empty()) {
+        Some(r) => format!("{when} · {}", one_line(r, 160)),
+        None => when,
+    }
+}
+
 fn tool_label(name: &str, i: &Value) -> String {
     let s = |k: &str| i.get(k).and_then(Value::as_str).map(str::to_string);
     let label = match name {
@@ -1504,6 +1679,14 @@ fn tool_label(name: &str, i: &Value) -> String {
         "WebSearch" => s("query"),
         "Skill" => s("skill"),
         "Agent" | "Task" => s("description"),
+        // Until its result names it: a saved workflow's name, the script file, or the name in
+        // the script's `meta`.
+        "Workflow" => s("name")
+            .or_else(|| s("scriptPath").map(|p| workflow_file_name(&p)))
+            .or_else(|| s("script").and_then(|sc| script_meta(&sc, "name"))),
+        "ScheduleWakeup" => Some(wakeup_label(i)),
+        // How an agent asked for a schema (a workflow's, usually) hands back its result.
+        "StructuredOutput" => Some("hands back its result".into()),
         "TaskCreate" | "TaskUpdate" => s("subject").or_else(|| {
             let id = i.get("taskId").map(|v| v.to_string().trim_matches('"').to_string());
             match (id, s("status")) {
@@ -1577,6 +1760,96 @@ mod tests {
             src,
             &line("user", "2026-11-17T10:00:02.000Z", &extra, &content.to_string()),
         );
+    }
+
+    /// A `<task-notification>` as Claude Code queues it.
+    fn notify(t: &mut Timeline, src: &mut SourceState, ts: &str, tool_use: &str, status: &str, result: Option<&str>) {
+        let mut body = format!(
+            "<task-notification>\n<task-id>w1</task-id>\n<tool-use-id>{tool_use}</tool-use-id>\n<status>{status}</status>\n<summary>Dynamic workflow \"Sort the files\" {status}</summary>\n"
+        );
+        if let Some(r) = result {
+            body.push_str(&format!("<result>{r}</result>\n"));
+        }
+        body.push_str("</task-notification>");
+        let l = json!({"type": "queue-operation", "operation": "enqueue", "timestamp": ts, "sessionId": "s", "content": body});
+        t.ingest(src, &l.to_string());
+    }
+
+    const SCRIPT: &str = "export const meta = {\n  name: 'sort-files',\n  description: 'Sort the files, then \\'check\\' each',\n  phases: [{ title: 'Sort' }],\n}\nconst r = await agent('go', { label: 'sort:a', phase: 'Sort' })\nreturn r\n";
+
+    #[test]
+    fn a_workflow_runs_in_the_background_until_it_reports() {
+        let mut t = Timeline::default();
+        let mut src = SourceState::new(0, false);
+        prompt(&mut t, &mut src, "sort them with a workflow");
+        tool(&mut t, &mut src, "wf1", "Workflow", json!({"script": SCRIPT, "args": {"n": 3}}));
+        let s = &t.steps[1];
+        // Named from the script's meta until the result names it.
+        assert_eq!((s.cat, s.label.as_str(), s.state, s.bg), ("workflow", "sort-files", "run", true));
+        assert_eq!(t.details[1]["description"], "Sort the files, then 'check' each");
+        result(&mut t, &mut src, "wf1", "Workflow launched in background. Task ID: w1", false, json!({
+            "status": "async_launched", "taskId": "w1", "taskType": "local_workflow",
+            "workflowName": "sort-files", "runId": "wf_0001-aa", "summary": "Sort the files, then check each",
+            "transcriptDir": "C:\\s\\subagents\\workflows\\wf_0001-aa", "scriptPath": "C:\\s\\workflows\\scripts\\sort-files-wf_0001-aa.js",
+        }));
+        let s = &t.steps[1];
+        assert_eq!((s.state, s.sub.as_deref(), s.bg_status.as_deref()), ("ok", Some("Sort the files, then check each"), None));
+        assert_eq!(t.workflow_steps.get("wf_0001-aa"), Some(&1));
+        assert_eq!(t.details[1]["runId"], "wf_0001-aa");
+        // Another background task's notification is someone else's.
+        notify(&mut t, &mut src, "2026-11-17T10:05:00.000Z", "other", "completed", None);
+        assert_eq!(t.steps[1].bg_status, None);
+        notify(&mut t, &mut src, "2026-11-17T10:13:42.000Z", "wf1", "completed", Some(r#"[{"file":"a"}]"#));
+        let s = &t.steps[1];
+        assert_eq!((s.state, s.bg_status.as_deref()), ("ok", Some("completed")));
+        assert_eq!(s.end.map(|e| e - s.ts), Some((13 * 60 + 41) * 1000));
+        assert_eq!(t.details[1]["taskResult"], r#"[{"file":"a"}]"#);
+        assert!(t.take_dirty().contains(&1));
+        // The same notification seen again (delivered as a user line later) changes nothing.
+        t.ingest(&mut src, &line("user", "2026-11-17T10:14:00.000Z", r#","origin":{"kind":"task-notification"}"#,
+            &serde_json::to_string("<task-notification>\n<tool-use-id>wf1</tool-use-id>\n<status>completed</status>\n</task-notification>").unwrap()));
+        assert_eq!(t.steps[1].end.map(|e| e - t.steps[1].ts), Some((13 * 60 + 41) * 1000));
+        assert_eq!(t.steps.len(), 2, "a notification is not a prompt");
+    }
+
+    #[test]
+    fn a_workflow_that_fails_or_is_stopped() {
+        let mut t = Timeline::default();
+        let mut src = SourceState::new(0, false);
+        prompt(&mut t, &mut src, "go");
+        tool(&mut t, &mut src, "wf1", "Workflow", json!({"scriptPath": "D:\\p\\.claude\\workflows\\nightly-review.js"}));
+        assert_eq!(t.steps[1].label, "nightly-review");
+        result(&mut t, &mut src, "wf1", "launched", false, json!({"status": "async_launched", "runId": "wf_2"}));
+        notify(&mut t, &mut src, "2026-11-17T10:01:00.000Z", "wf1", "killed", None);
+        assert_eq!((t.steps[1].state, t.steps[1].bg_status.as_deref()), ("err", Some("killed")));
+        // A saved workflow, by name; one that never launched fails like any tool.
+        tool(&mut t, &mut src, "wf2", "Workflow", json!({"name": "deep-research"}));
+        assert_eq!(t.steps[2].label, "deep-research");
+        result(&mut t, &mut src, "wf2", "Error: nothing to resume", true, json!("Error: nothing to resume"));
+        assert_eq!((t.steps[2].state, t.steps[2].bg_status.as_deref()), ("err", None));
+    }
+
+    #[test]
+    fn workflow_names_from_scripts_and_files() {
+        assert_eq!(script_meta(SCRIPT, "name").as_deref(), Some("sort-files"));
+        assert_eq!(script_meta("export const meta = { \"name\": \"q\", description: `d` }", "name").as_deref(), Some("q"));
+        assert_eq!(script_meta("export const meta = { name: 'q', description: `two\nlines` }", "description").as_deref(), Some("two\nlines"));
+        // `filename` isn't `name`; a name that isn't a literal isn't read.
+        assert_eq!(script_meta("export const meta = { filename: 'x', name: 'y' }", "name").as_deref(), Some("y"));
+        assert_eq!(script_meta("export const meta = { name: NAME }", "name"), None);
+        assert_eq!(script_meta("const name = 'x'", "name"), None);
+        assert_eq!(workflow_file_name("C:\\s\\workflows\\scripts\\sort-files-wf_0001-aa.js"), "sort-files");
+        assert_eq!(workflow_file_name("/p/.claude/workflows/review.js"), "review");
+    }
+
+    #[test]
+    fn a_loop_pacing_itself() {
+        let w = |v: Value| tool_label("ScheduleWakeup", &v);
+        assert_eq!(w(json!({"delaySeconds": 1200, "reason": "watching CI run", "prompt": "/babysit"})), "in 20m · watching CI run");
+        assert_eq!(w(json!({"delaySeconds": 90})), "in 2m");
+        assert_eq!(w(json!({"delaySeconds": 3600, "reason": "idle"})), "in 1h · idle");
+        assert_eq!(w(json!({"delaySeconds": 45})), "in 45s");
+        assert_eq!(w(json!({"stop": true})), "Stop the loop");
     }
 
     #[test]

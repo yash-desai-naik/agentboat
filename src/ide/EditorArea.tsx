@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { Ide, Presence, Tab } from "../lib/derive";
-import { agentHue, agentName, isPaletteStep } from "../lib/derive";
+import { agentHue, agentName, isPaletteStep, workflowProgress } from "../lib/derive";
 import { baseName, duration, modelName, pathKey, relativeTo, tokens } from "../lib/format";
 import { type Anim, setWatch, useDetail, useDetails, seek, useSession } from "../lib/store";
 import type { Detail, Head, Hunk, Step } from "../lib/types";
@@ -11,7 +11,7 @@ import { settings } from "../lib/settings";
 import { useSettings } from "../lib/settings";
 import { Markdown } from "./Markdown";
 import { FileIcon } from "./FileIcon";
-import { Advisor, Close } from "../ui/Icons";
+import { Advisor, Close, Workflow } from "../ui/Icons";
 
 /** The typing animation for a step, while it's the one that just became current. */
 export function typingFor(anim: Anim | null, i: number): Typing | null {
@@ -34,6 +34,7 @@ export function EditorArea({ ide, head, steps }: { ide: Ide; head: Head | null; 
       {mine && mine.kind === "tool" && mine.cat === "ask" && (onIt || mine.state === "run") && <AskDialog step={mine} head={head} />}
       {mine && onIt && isPaletteStep(mine) && <PaletteBar step={mine} />}
       {mine && onIt && mine.kind === "tool" && mine.cat === "advisor" && <AdvisorCard step={mine} head={head} />}
+      {mine && onIt && mine.kind === "tool" && mine.cat === "workflow" && <WorkflowCard step={mine} head={head} steps={steps} />}
       <div className="tabbar">
       <div className="tabstrip" role="tablist">
         {ide.tabs.map((t) => (
@@ -499,6 +500,74 @@ export function AdvisorCard({ step, head }: { step: Step; head: Head | null }) {
       </div>
     </div>
   );
+}
+
+// ---------- a workflow (the Workflow tool) ----------
+
+const WORKFLOW_ENDED: Record<string, string> = {
+  completed: "Completed",
+  failed: "Failed",
+  killed: "Stopped",
+  stopped: "Stopped: the session ended before it reported",
+};
+
+/**
+ * Claude launching a workflow: a script that fans work out to agents, in phases, in the
+ * background. It shows at the launch, so it tells the whole run as far as the transcript goes:
+ * its phases, its agents and how it ended. Each agent is in the Subagents view.
+ */
+export function WorkflowCard({ step, head, steps }: { step: Step; head: Head | null; steps: Step[] }) {
+  const d = useDetail(step);
+  const run = workflowProgress(steps, steps.length - 1, head, step);
+  const who = step.agent > 0 ? agentName(head, step.agent) : "Claude";
+  const took = step.end && step.end > step.ts ? duration(step.end - step.ts) : null;
+  const what = d?.summary ?? d?.description ?? null;
+  const busy = run.state === "starting" || run.state === "running";
+  return (
+    <div className="palette-wrap">
+      <div className="palette workflow-card" role="dialog" aria-label="Workflow">
+        <div className="palette-input">
+          <Workflow size={15} className="workflow-icon" />
+          <span className="ellipsis">
+            {who} {d?.resumeFromRunId ? "resumes" : "runs"} the workflow <b>{step.label}</b>
+          </span>
+          <span className="nw-fill" />
+          {step.state === "err" && !step.bgStatus ? (
+            <span className="advisor-state o-err">Didn't start</span>
+          ) : busy ? (
+            <span className="advisor-state">
+              <span className="spinner" /> {run.state === "starting" ? "Starting…" : `${run.running} working`}
+            </span>
+          ) : (
+            <span className={`advisor-state${run.state === "completed" ? "" : " o-err"}`}>
+              {WORKFLOW_ENDED[run.state] ?? run.state}
+              {run.state === "completed" && took ? ` · ${took}` : ""}
+            </span>
+          )}
+        </div>
+        {what && <div className="palette-row dim">{what}</div>}
+        {run.phases.map((ph) => (
+          <div key={ph.title} className="palette-row workflow-phase-row">
+            <span>{ph.title || "Agents"}</span>
+            <span className="dim">
+              {ph.started} agent{ph.started === 1 ? "" : "s"}
+              {ph.done < ph.started ? ` · ${ph.done} done so far` : ""}
+            </span>
+          </div>
+        ))}
+        {run.started === 0 && !busy && <div className="palette-row dim">No agents ran.</div>}
+        {step.state === "err" && !step.bgStatus && d?.output && <div className="palette-row o-err">{d.output.split("\n")[0]}</div>}
+        {d?.taskResult && run.state !== "running" && run.state !== "starting" && (
+          <div className="palette-row dim">Its script returned {textSize(d.taskResult)} to {who}.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function textSize(text: string): string {
+  const kb = text.length / 1024;
+  return kb < 1 ? `${text.length} characters` : `${kb < 10 ? kb.toFixed(1) : Math.round(kb)} KB`;
 }
 
 // ---------- a command run from the palette (Skill, ToolSearch) ----------

@@ -21,7 +21,10 @@ fn main() {
         took
     );
     for a in &head.agents {
-        println!("  agent {:?} {:?} step {:?} finished {}", a.description, a.kind, a.step, a.finished);
+        println!(
+            "  agent {:?} {:?} step {:?} finished {} run {:?} phase {:?}",
+            a.description, a.kind, a.step, a.finished, a.run, a.phase
+        );
     }
     let mut cats = std::collections::BTreeMap::<String, usize>::new();
     for s in v.steps() {
@@ -47,6 +50,15 @@ fn main() {
         );
         if let Some(g) = &s.git {
             println!("        git {:?}", g);
+        }
+        if s.cat == "workflow"
+            && let Some(d) = d
+        {
+            let f = |k: &str| d.get(k).cloned().unwrap_or_default();
+            println!(
+                "        workflow run {} task {} launch {} status {:?} ended {:?} | {}",
+                f("runId"), f("taskId"), f("launch"), s.bg_status, s.end.map(|e| e - s.ts), s.sub.as_deref().unwrap_or("")
+            );
         }
         if s.cat == "advisor"
             && let Some(d) = d

@@ -263,6 +263,7 @@ export function derive(steps: Step[], cursor: number, head: Head | null, watch =
         if (mine) focus = "tasks";
         break;
       case "agent":
+      case "workflow":
         if (mine) focus = "agents";
         break;
       case "web": {
@@ -377,11 +378,90 @@ export function agentProgress(steps: Step[], cursor: number, head: Head | null, 
       last = s;
     } else later++;
   }
-  const started = count > 0 || (a?.step != null && a.step <= cursor);
+  // An Agent call starts its agent at once; a workflow's agents start one by one after its
+  // launch, each with its first step.
+  const started = count > 0 || (!a?.run && a?.step != null && a.step <= cursor);
   const live = !!head && head.status !== "ended";
-  const working = later > 0 || (!a?.finished && live);
-  const state = working ? (count === 0 ? "starting" : "running") : a?.finished || later === 0 && live ? "done" : "stopped";
+  // A workflow agent that never reported is over once its run is: a stopped or failed run's
+  // agents don't keep working while the session lives on.
+  const runStep = a?.run && a.step != null ? steps[a.step] : undefined;
+  const runOver = !!runStep && reportedBy(steps, cursor, runStep);
+  const working = later > 0 || (!a?.finished && live && !runOver);
+  const state = working ? (count === 0 ? "starting" : "running") : a?.finished || (later === 0 && live && !runOver) ? "done" : "stopped";
   return { started, count, last, later, state };
+}
+
+/**
+ * Whether a background step (a workflow run) had reported how it ended by the cursor. Its
+ * notification isn't a step of its own: at the last step, one that has arrived counts.
+ */
+function reportedBy(steps: Step[], cursor: number, step: Step): boolean {
+  if (!step.bgStatus || step.end == null) return false;
+  if (cursor >= steps.length - 1) return true;
+  return step.end <= (steps[cursor]?.ts ?? 0);
+}
+
+/** What kind of agent it is, for its card: its type (`Explore`), or a workflow agent's phase. */
+export function agentKind(head: Head | null, n: number): string {
+  const a = head?.agents[n - 1];
+  if (!a) return "agent";
+  if (a.run) return a.phase ? `workflow · ${a.phase}` : "workflow";
+  return a.kind ?? "agent";
+}
+
+export interface WorkflowPhase {
+  title: string;
+  /** Its agents started by the cursor, and how many of those had finished. */
+  started: number;
+  done: number;
+}
+
+export interface WorkflowProgress {
+  /** Agent numbers (1-based) in the run, in the order they started. */
+  agents: number[];
+  phases: WorkflowPhase[];
+  started: number;
+  running: number;
+  done: number;
+  /** `starting` (launched, no agent yet), `running`, `completed`, `failed`, `killed`, or
+   *  `stopped` (never reported back: the session ended first). */
+  state: "starting" | "running" | "completed" | "failed" | "killed" | "stopped";
+}
+
+/**
+ * Where a workflow run (its Workflow step) stood at the cursor. The run reports once, when its
+ * script returns (the step's `end` and `bgStatus`); until then it's running while the session is
+ * live, even between phases when none of its agents is.
+ */
+export function workflowProgress(steps: Step[], cursor: number, head: Head | null, step: Step): WorkflowProgress {
+  const agents: number[] = [];
+  const phases: WorkflowPhase[] = [];
+  let started = 0;
+  let running = 0;
+  let done = 0;
+  head?.agents.forEach((a, k) => {
+    if (a.step !== step.i || !a.run) return;
+    const n = k + 1;
+    agents.push(n);
+    const p = agentProgress(steps, cursor, head, n);
+    if (!p.started) return;
+    started++;
+    // Stopped agents (their run ended first) are neither done nor working.
+    if (p.state === "done") done++;
+    else if (p.state !== "stopped") running++;
+    const title = a.phase ?? "";
+    let ph = phases.find((x) => x.title === title);
+    if (!ph) phases.push((ph = { title, started: 0, done: 0 }));
+    ph.started++;
+    if (p.state === "done") ph.done++;
+  });
+  const reported = reportedBy(steps, cursor, step);
+  const live = !!head && head.status !== "ended";
+  let state: WorkflowProgress["state"];
+  if (reported) state = step.bgStatus === "failed" || step.bgStatus === "killed" || step.bgStatus === "stopped" ? step.bgStatus : "completed";
+  else if (running > 0 || live || cursor < steps.length - 1) state = started === 0 ? "starting" : "running";
+  else state = "stopped";
+  return { agents, phases, started, running, done, state };
 }
 
 /** The agent's display name: "Explore · Find the parser". */

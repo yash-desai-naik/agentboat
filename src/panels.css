@@ -695,6 +695,24 @@
   pointer-events: auto;
 }
 
+/* ---------- a workflow, launched ---------- */
+
+.workflow-card {
+  width: min(620px, calc(100% - 40px));
+}
+.workflow-card .palette-input {
+  font-family: inherit;
+}
+.workflow-icon {
+  flex: none;
+  color: var(--accent);
+}
+.workflow-phase-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 /* ---------- presence: everyone else at work in the workspace ---------- */
 
 .presence-strip {

@@ -1,5 +1,5 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { agentHue, agentName, agentProgress, type AgentProgress } from "../lib/derive";
+import { agentHue, agentName, agentProgress, type AgentProgress, workflowProgress, type WorkflowProgress } from "../lib/derive";
 import { clock, duration, modelName, shortTool } from "../lib/format";
 import { type Anim, seek, setWatch, useSession } from "../lib/store";
 import { settings, useSettings } from "../lib/settings";
@@ -28,7 +28,8 @@ export function ChatPanel({ head, steps, cursor }: { head: Head | null; steps: S
   // Agents started from each Agent step, to show their progress on its row.
   const agentOf = new Map<number, number>();
   head?.agents.forEach((a, k) => {
-    if (a.step !== null) agentOf.set(a.step, k + 1);
+    // A workflow's agents share its step; its row shows the run (below), not one of them.
+    if (a.step !== null && !a.run) agentOf.set(a.step, k + 1);
   });
 
   // How many steps each subagent had taken by the cursor, for its Agent row.
@@ -79,7 +80,7 @@ export function ChatPanel({ head, steps, cursor }: { head: Head | null; steps: S
           </button>
         )}
         {shown.map((s) => (
-          <ChatItem key={s.i} step={s} head={head} current={s.i === cursor} anim={anim?.i === s.i ? anim : null} agentSteps={agentSteps(agentOf.get(s.i))} agentRun={agentRun(agentOf.get(s.i))} />
+          <ChatItem key={s.i} step={s} head={head} current={s.i === cursor} anim={anim?.i === s.i ? anim : null} agentSteps={agentSteps(agentOf.get(s.i))} agentRun={agentRun(agentOf.get(s.i))} workflow={s.cat === "workflow" ? workflowProgress(steps, cursor, head, s) : null} />
         ))}
         {live && head.status === "waiting" && (
           <div className="chat-state waiting">
@@ -103,6 +104,7 @@ const ChatItem = memo(function ChatItem({
   anim,
   agentSteps,
   agentRun,
+  workflow,
 }: {
   step: Step;
   head: Head | null;
@@ -110,6 +112,7 @@ const ChatItem = memo(function ChatItem({
   anim: Anim | null;
   agentSteps: number | null;
   agentRun: AgentProgress | null;
+  workflow: WorkflowProgress | null;
 }) {
   const cls = `chat-item ${step.kind}${current ? " current" : ""}`;
   const chip =
@@ -172,7 +175,9 @@ const ChatItem = memo(function ChatItem({
             </span>
           )}
           {agentInfo && <span className="tool-meta">{agentInfo}</span>}
-          {agentRun ? (
+          {workflow ? (
+            <WorkflowMeta run={workflow} took={took} />
+          ) : agentRun ? (
             // The agent's own progress, not its Agent call's (a background agent's call returns at once).
             agentRun.state === "running" || agentRun.state === "starting" ? (
               <span className="spinner" title={agentRun.state === "starting" ? "Starting" : "Working"} />
@@ -191,6 +196,21 @@ const ChatItem = memo(function ChatItem({
     }
   }
 });
+
+/** A workflow run's row: its agents so far, and running or how it ended. */
+function WorkflowMeta({ run, took }: { run: WorkflowProgress; took: string | null }) {
+  const agents = run.started > 0 ? `${run.started} agent${run.started === 1 ? "" : "s"}` : null;
+  if (run.state === "starting" || run.state === "running") {
+    return (
+      <>
+        {agents && <span className="tool-meta">{run.running > 0 ? `${run.done}/${run.started} done` : agents}</span>}
+        <span className="spinner" title={run.state === "starting" ? "Starting" : `${run.running} working`} />
+      </>
+    );
+  }
+  const ended = run.state === "completed" ? "Completed" : run.state === "stopped" ? "Stopped" : run.state === "killed" ? "Stopped" : "Failed";
+  return <span className={`tool-meta${run.state === "completed" ? "" : " o-err"}`}>{[agents, ended, run.state === "completed" ? took : null].filter(Boolean).join(" · ")}</span>;
+}
 
 function toolName(s: Step): string {
   if (s.cat === "git" && s.git) return `git ${s.git.primary}`;

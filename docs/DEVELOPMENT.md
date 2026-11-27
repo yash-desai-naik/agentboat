@@ -56,6 +56,15 @@ Rust, `src-tauri/src/` (the window-free core `agentboat_core`, plus `main.rs` an
     entries of type `advisor_message`, given in order to the calls that didn't fail; every line of
     the message repeats that usage, so it's kept per message id and counted once. `advisorModel`
     on each reply is the session's advisor (none when off).
+  - Workflows (the `Workflow` tool, Claude Code 2.1.15x on; none of this is in Claude Code's
+    docs, it's read from real runs): the call's input is `script`, `scriptPath` or `name` (a
+    saved workflow), plus `args` and `resumeFromRunId`. Its result comes at once, with
+    `toolUseResult` `{status: "async_launched", taskId, runId: "wf_…", workflowName, summary,
+    transcriptDir, scriptPath}`; `runId` ties the run's agents to the step (`workflow_steps`). The
+    run ends with a `<task-notification>` (`<tool-use-id>`, `<status>` completed, failed, killed
+    or stopped, `<summary>`, `<result>` what the script returned), queued as a `queue-operation`
+    `enqueue` line; it sets the step's `bgStatus` and `end`. Any background task's notification is
+    read the same way.
   - Prompts are user lines with `origin.kind == "human"` (or, in older transcripts, plain text that
     isn't a notification); slash commands are shown as typed. `[Request interrupted…]` ends the
     running tools.
@@ -74,7 +83,12 @@ Rust, `src-tauri/src/` (the window-free core `agentboat_core`, plus `main.rs` an
   (only bytes appended since the last poll; a line without its newline waits). New lines from all
   transcripts are merged by timestamp, keeping each file's order. Subagents are found every
   second and tied to the `Agent` step that started them (`meta.json`'s `toolUseId`, or the
-  result's `agentId`). Status comes from the registry; a transcript written in the last 30 s but
+  result's `agentId`). A workflow's agents are in `subagents/workflows/wf_<run>/` (`meta.json`:
+  `agentType: "workflow-subagent"`, `description` the script's label, `workflowPhase`), with the
+  run's `journal.jsonl` (`launched`, then `started` and `result` per agent, no timestamps): an
+  agent is finished when the journal has its `result`, since its meta.json never says so and its
+  transcript can end on a tool result (its structured output). An agent that never reports is
+  over when its run is (the UI, from the Workflow step's `bgStatus`). Status comes from the registry; a transcript written in the last 30 s but
   not registered (`claude -p`, SDK) counts as active.
 - `hooks.rs`: AgentBoat's `PermissionRequest` hook in Claude Code's `settings.json`: found by its URL
   path (`/agentboat/permission`), added and removed without touching anything else (a file that

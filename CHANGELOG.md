@@ -6,6 +6,25 @@ All notable changes to AgentBoat (called Ccboat up to 0.5.1) are listed here. Th
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-27
+
+### Added
+
+- **Workflows.** When Claude runs a workflow (the Workflow tool, `ultracode`: a script that fans
+  work out to agents in phases, in the background), its agents now show up. Before, they were
+  missing: Claude Code keeps them in a folder of their own per run. The Subagents view lists them
+  under the run's name, divided by phase (say Search, then Verify), with how many have finished.
+  The Workflow row in the Claude panel shows the run's progress and, once it reports, how it ended
+  and how long it took ("12 agents · Completed · 9m 30s"). A card over the editor at the launch says
+  what the run is, its phases and agents, and what it returned. A run that never reported (the
+  session ended first) says it stopped.
+- `/loop` pacing itself reads as such: "ScheduleWakeup in 20m · watching CI".
+
+### Fixed
+
+- An agent answering with a schema ends on "hands back its result" rather than
+  "StructuredOutput".
+
 ## [0.9.1] - 2026-11-23
 
 ### Changed
@@ -236,7 +255,8 @@ The first release: watch a Claude Code session as a read-only IDE, live or repla
 - Light on resources: about 200 MB of memory, 5–9% of one core following a live session, under 1%
   minimized. Never writes anywhere and never uses the network.
 
-[Unreleased]: https://github.com/yash-desai-naik/agentboat/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/yash-desai-naik/agentboat/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/yash-desai-naik/agentboat/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/yash-desai-naik/agentboat/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/yash-desai-naik/agentboat/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/yash-desai-naik/agentboat/compare/v0.7.0...v0.8.0

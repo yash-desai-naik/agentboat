@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { FileMark, Ide } from "../lib/derive";
-import { agentHue, agentName, agentProgress } from "../lib/derive";
+import { agentHue, agentKind, agentName, agentProgress, workflowProgress } from "../lib/derive";
 import { baseName, clock, pathKey, relativeTo } from "../lib/format";
 import { seek, setWatch, useDetail } from "../lib/store";
 import type { Head, Step } from "../lib/types";
@@ -387,46 +387,102 @@ function TasksView({ ide }: { ide: Ide }) {
 function AgentsView({ ide, head, steps }: { ide: Ide; head: Head | null; steps: Step[] }) {
   const agents = head?.agents ?? [];
   const cursor = ide.current?.i ?? -1;
+  // Each agent in the order it started, except that a workflow's agents are listed together
+  // under their run, where its first one started.
+  const items: ({ n: number } | { run: string; step: number | null; ns: number[] })[] = [];
+  const runs = new Map<string, number[]>();
+  agents.forEach((a, k) => {
+    if (!a.run) return void items.push({ n: k + 1 });
+    let ns = runs.get(a.run);
+    if (!ns) {
+      runs.set(a.run, (ns = []));
+      items.push({ run: a.run, step: a.step, ns });
+    }
+    ns.push(k + 1);
+  });
   return (
     <>
       <SideHeader title="Subagents" />
       <div className="side-scroll">
         {agents.length === 0 && <p className="side-empty">Subagents Claude starts show here, with what each is doing.</p>}
-        {agents.map((a, k) => {
-          const n = k + 1;
-          const p = agentProgress(steps, cursor, head, n);
-          if (!p.started) return null;
-          const { count, last } = p;
-          const running = p.state === "running" || p.state === "starting";
-          return (
-            <button
-              key={a.id}
-              className={`agent-card${ide.watch === n ? " watched" : ""}`}
-              onClick={() => setWatch(ide.watch === n ? 0 : n)}
-              title={ide.watch === n ? "Back to Claude's screen" : "Watch this agent's screen"}
-              style={{ ["--hue" as string]: agentHue(n) }}
-            >
-              <div className="agent-card-head">
-                <span className="agent-pip" />
-                <span className="agent-card-name ellipsis">{agentName(head, n)}</span>
-                {running ? (
-                  <span className="agent-state">
-                    {p.state === "starting" && "starting "}
-                    <span className="spinner" />
-                  </span>
-                ) : (
-                  <span className="list-meta">{p.state === "stopped" ? "stopped" : "done"}</span>
-                )}
-              </div>
-              <div className="agent-card-sub">
-                {a.kind ?? "agent"} · {count} step{count === 1 ? "" : "s"}
-                {p.later > 0 && <span className="dim"> · {p.later} more later</span>}
-              </div>
-              {last && <div className="agent-card-last ellipsis">{last.kind === "tool" ? `${last.tool}: ${last.label}` : last.label}</div>}
-            </button>
-          );
-        })}
+        {items.map((it) =>
+          "n" in it ? (
+            <AgentCard key={agents[it.n - 1].id} ide={ide} head={head} steps={steps} cursor={cursor} n={it.n} />
+          ) : (
+            <WorkflowGroup key={it.run} ide={ide} head={head} steps={steps} cursor={cursor} step={it.step} ns={it.ns} />
+          ),
+        )}
       </div>
     </>
+  );
+}
+
+/** A workflow run's agents, under the run's name and progress, with a divider per phase. */
+function WorkflowGroup({ ide, head, steps, cursor, step, ns }: { ide: Ide; head: Head | null; steps: Step[]; cursor: number; step: number | null; ns: number[] }) {
+  const s = step != null ? steps[step] : undefined;
+  // Not launched yet at the cursor (replaying the past): nothing to show.
+  if (s && s.i > cursor) return null;
+  const run = s ? workflowProgress(steps, cursor, head, s) : null;
+  if (run && run.started === 0 && run.state !== "starting") return null;
+  const busy = run?.state === "running" || run?.state === "starting";
+  let phase: string | null | undefined;
+  return (
+    <div className="side-section workflow-group">
+      <button className="side-section-title workflow-title" onClick={() => s && seek(s.i)} title={s?.sub ?? "Workflow"}>
+        <span className="ellipsis">Workflow · {s?.label ?? "run"}</span>
+        <span className="side-header-fill" />
+        {run && run.started > 0 && <span className="count">{run.done}/{run.started}</span>}
+        {busy ? <span className="spinner" /> : run && run.state !== "completed" && <span className="o-err">{run.state}</span>}
+      </button>
+      {ns.map((n) => {
+        const a = head?.agents[n - 1];
+        const p = agentProgress(steps, cursor, head, n);
+        if (!a || !p.started) return null;
+        const divider = a.phase !== phase && a.phase ? <div className="workflow-phase">{a.phase}</div> : null;
+        phase = a.phase;
+        return (
+          <div key={a.id}>
+            {divider}
+            <AgentCard ide={ide} head={head} steps={steps} cursor={cursor} n={n} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function AgentCard({ ide, head, steps, cursor, n }: { ide: Ide; head: Head | null; steps: Step[]; cursor: number; n: number }) {
+  const a = head?.agents[n - 1];
+  const p = agentProgress(steps, cursor, head, n);
+  if (!a || !p.started) return null;
+  const { count, last } = p;
+  const running = p.state === "running" || p.state === "starting";
+  return (
+    <button
+      className={`agent-card${ide.watch === n ? " watched" : ""}`}
+      onClick={() => setWatch(ide.watch === n ? 0 : n)}
+      title={ide.watch === n ? "Back to Claude's screen" : "Watch this agent's screen"}
+      style={{ ["--hue" as string]: agentHue(n) }}
+    >
+      <div className="agent-card-head">
+        <span className="agent-pip" />
+        <span className="agent-card-name ellipsis">{agentName(head, n)}</span>
+        {running ? (
+          <span className="agent-state">
+            {p.state === "starting" && "starting "}
+            <span className="spinner" />
+          </span>
+        ) : (
+          <span className="list-meta">{p.state === "stopped" ? "stopped" : "done"}</span>
+        )}
+      </div>
+      <div className="agent-card-sub">
+        {/* A workflow agent's phase is its group's divider. */}
+        {a.run ? "" : `${agentKind(head, n)} · `}
+        {count} step{count === 1 ? "" : "s"}
+        {p.later > 0 && <span className="dim"> · {p.later} more later</span>}
+      </div>
+      {last && <div className="agent-card-last ellipsis">{last.kind === "tool" ? `${last.tool}: ${last.label}` : last.label}</div>}
+    </button>
   );
 }

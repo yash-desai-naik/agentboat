@@ -36,7 +36,7 @@ function markVar(s: Step): string {
 function weight(s: Step): number {
   if (s.kind === "prompt") return 9;
   if (s.state === "err" || s.kind === "interrupt") return 8;
-  if (s.cat === "git" || s.cat === "advisor") return 7;
+  if (s.cat === "git" || s.cat === "advisor" || s.cat === "workflow") return 7;
   if (s.cat === "edit" || s.cat === "write") return 6;
   if (s.cat === "shell") return 5;
   if (s.cat === "read") return 4;

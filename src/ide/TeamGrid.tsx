@@ -1,4 +1,4 @@
-import { agentHue, agentName, agentProgress, type AgentProgress } from "../lib/derive";
+import { agentHue, agentKind, agentName, agentProgress, type AgentProgress } from "../lib/derive";
 import { baseName, duration, stripAnsi } from "../lib/format";
 import { setWatch, useDetails } from "../lib/store";
 import { settings } from "../lib/settings";
@@ -72,7 +72,7 @@ function working(p: AgentProgress) {
 function Tile({ m, head, d, now, watched }: { m: Member; head: Head | null; d: Detail | null | undefined; now: number; watched: boolean }) {
   const s = m.p.last;
   const name = m.n === 0 ? "Claude" : agentName(head, m.n);
-  const kind = m.n === 0 ? "main session" : (head?.agents[m.n - 1]?.kind ?? "agent");
+  const kind = m.n === 0 ? "main session" : agentKind(head, m.n);
   return (
     <button
       className={`tile${working(m.p) ? " working" : ""}${watched ? " watched" : ""}`}
